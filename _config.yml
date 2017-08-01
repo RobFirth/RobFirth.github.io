@@ -5,7 +5,7 @@ baseurl:      ""
 paginate:     1
 
 # About/contact
-author: RobFirth
+author:       RobFirth
   name:       Robert firth
   url:        http://robfirth.github.io/
 

@@ -1,7 +1,7 @@
 title: Robfirth.GitHub.io
 description: My github pages
 google_analytics: UA-61638715-3
-show_downloads: true
+show_downloads: False
 theme: jekyll-theme-cayman
 
 gems:

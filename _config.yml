@@ -8,6 +8,7 @@ paginate:     1
 author:
   name:       Robert firth
   url:        http://robfirth.github.io/
+github:       https://github.com/RobFirth/RobFirth.github.io
 
 # Gems
 gems:

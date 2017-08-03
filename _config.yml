@@ -1,11 +1,11 @@
 # Setup
 title:        Welcome
-tagline:      A responsive theme for your project on GitHub Pages
+tagline:      I'm Rob, and this is my website - Astronomy, Data Analytics and Everything Else.
 baseurl:      ""
 paginate:     1
 
 # About/contact
-author:       
+author:
   name:       Robert firth
   url:        http://robfirth.github.io/
 

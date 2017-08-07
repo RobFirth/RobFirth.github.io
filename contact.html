@@ -1,28 +1,46 @@
 ---
 layout: page
 title: {{ site.name }}
+heading: Contact
+subheading: Get in touch with me.
 ---
 
 <div>
   <h1>Contact Me.</h1>
-    <h2>email.</h2>
-      <ul>
-        <li>contact@robertfirth.co.uk</li>
-        <li>science@robertfirth.co.uk</li>
-      </ul>
-    <h2>twitter</h2>
 
-      {% include twitterfeed.html %}
+    If you want to get in touch with me you can drop me an email, tweet me, check me out on linkedin, send me something in the post, carrier pigeon.
+    <hr>
+    <!-- <div class="row"> -->
+      <h2>email.</h2>
 
-    <h2>Address</h2>
-      <strong>Dr. Robert Firth</strong>
-      Room 4055<br>
-      Building 46<br>
-      School of Physics and Astronomy</br>
-      University of Southampton<br>
-      Southampton, SO17 1BJ<br>
+        <span class="glyphicon glyphicon-envelope" aria-hidden="true"></span>
 
-    <h2>Linkedin</h2>
-    {% include linkedinbutton.html %}
+        <ul>
+          <li>science@robertfirth.co.uk</li>
+          <li>contact@robertfirth.co.uk</li>
+        </ul>
+    <!-- </div>
+    <div class="row"> -->
+    <hr>
+      <h2>twitter</h2>
+
+        {% include twitterfeed.html %}
+    <!-- </div>
+
+    <div class="row"> -->
+    <hr>
+      <h2>Address</h2>
+      <div class="text-center center">
+        <h3>Dr. Robert Firth</h3>
+        Room 4055<br>
+        Building 46<br>
+        School of Physics and Astronomy</br>
+        University of Southampton<br>
+        Southampton, SO17 1BJ<br>
+      </div>
+    <hr>
+      <h2>Linkedin</h2>
+
+      {% include linkedinbutton.html %}
 
 </div>

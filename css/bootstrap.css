@@ -19,7 +19,7 @@ details,
 figcaption,
 figure,
 footer,
-header,
+/*header,*/
 hgroup,
 main,
 menu,
@@ -3490,14 +3490,14 @@ tbody.collapse.in {
   right: auto;
   left: 0;
 }
-.dropdown-header {
+/*.dropdown-header {
   display: block;
   padding: 3px 20px;
   font-size: 12px;
   line-height: 1.42857143;
   color: #777;
   white-space: nowrap;
-}
+}*/
 .dropdown-backdrop {
   position: fixed;
   top: 0;
@@ -4059,10 +4059,10 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
     border-radius: 4px;
   }
 }
-@media (min-width: 768px) {
+/*@media (min-width: 768px) {
   .navbar-header {
     float: left;
-  }
+  }*/
 }
 .navbar-collapse {
   padding-right: 15px;
@@ -4110,7 +4110,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
     max-height: 200px;
   }
 }
-.container > .navbar-header,
+/*.container > .navbar-header,
 .container-fluid > .navbar-header,
 .container > .navbar-collapse,
 .container-fluid > .navbar-collapse {
@@ -4129,7 +4129,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 .navbar-static-top {
   z-index: 1000;
   border-width: 0 0 1px;
-}
+}*/
 @media (min-width: 768px) {
   .navbar-static-top {
     border-radius: 0;

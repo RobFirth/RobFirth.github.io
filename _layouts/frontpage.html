@@ -3,18 +3,21 @@
 <html lang="en-us">
 
   {% include head.html %}
+  {% include navigation.html %}
 
   <body>
 
     {% include frontpage-header.html %}
+    {% include sidebar.html %}
 
     <section class="main-content">
 
-    {{ content }}
+      {{ content }}
 
-    {% include page-footer.html %}
-    
+      {% include page-footer.html %}
+
     </section>
 
   </body>
+
 </html>

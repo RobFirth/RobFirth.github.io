@@ -5,15 +5,24 @@ title: {{ site.name }}
 
 <div>
   <h1>Contact Me.</h1>
-    contact@robertfirth.co.uk
-    science@robertfirth.co.uk
-    <h2>Address</h2>
-      Dr. Robert Firth
-      Room 4055
-      Building 46
-      School of Physics and Astronomy
-      University of Southampton
-      Southampton, SO17 1BJ
-</div>
+    <h2>email.</h2>
+      <ul>
+        <li>contact@robertfirth.co.uk</li>
+        <li>science@robertfirth.co.uk</li>
+      </ul>
+    <h2>twitter</h2>
 
-<div class="LI-profile-badge"  data-version="v1" data-size="medium" data-locale="en_US" data-type="vertical" data-theme="dark" data-vanity="robfirth"><a class="LI-simple-link" href='https://uk.linkedin.com/in/robfirth?trk=profile-badge'>Robert Firth</a></div>
+      {% include twitterfeed.html %}
+
+    <h2>Address</h2>
+      <strong>Dr. Robert Firth</strong>
+      Room 4055<br>
+      Building 46<br>
+      School of Physics and Astronomy</br>
+      University of Southampton<br>
+      Southampton, SO17 1BJ<br>
+
+    <h2>Linkedin</h2>
+    {% include linkedinbutton.html %}
+
+</div>

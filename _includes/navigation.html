@@ -7,10 +7,12 @@
   <li {% if page.url == '/about/' %}class="active" {% endif %}><a class='page-link' href="/about/">About</a></li>
 </ul> -->
 <div class="topnav" id="myTopnav">
-  <a href="/">Rob Firth</a>
-  <a {% if page.url == '/' %}class="active" {% endif %} href="/">Home</a>
-  <a {% if page.url == '/about.html' %}class="active" {% endif %} href="/about">About</a>
-  <a {% if page.url == '/posts.html' %}class="active" {% endif %} href="/posts">Posts</a>
-  <a {% if page.url == '/publications.html' %}class="active" {% endif %} href="/publications">Publications</a>
-  <a {% if page.url == '/contact.html' %}class="active" {% endif %} href="/contact">Contact</a>
+  <a href="/"><i class="fa fa-arrow-right" aria-hidden="true"></i>&nbsp;&nbsp;Rob Firth</a>
+  <a {% if page.url == '/' %}class="active" {% endif %} href="/"><i class="fa fa-home" aria-hidden="true"></i>&nbsp;&nbsp;Home</a>
+  <a {% if page.url == '/about.html' %}class="active" {% endif %} href="/about"><i class="fa fa-lightbulb-o" aria-hidden="true"></i>&nbsp;&nbsp;About</a>
+  <a {% if page.url == '/publications.html' %}class="active" {% endif %} href="/publications"> <i class="fa fa-book" aria-hidden="true"></i>&nbsp;&nbsp;Publications</a>
+  <a {% if page.url == '/code.html' %}class="active" {% endif %} href="/code"><i class="fa fa-code-fork" aria-hidden="true"></i>&nbsp;&nbsp;Code</a>
+  <a {% if page.url == '/posts.html' %}class="active" {% endif %} href="/posts"><i class="fa fa-file-text" aria-hidden="true"></i>&nbsp;&nbsp;Posts</a>
+  <a {% if page.url == '/photos.html' %}class="active" {% endif %} href="/photos"><i class="fa fa-camera-retro" aria-hidden="true"></i>&nbsp;&nbsp;Photos</a>
+  <a {% if page.url == '/contact.html' %}class="active" {% endif %} href="/contact"><i class="fa fa-envelope" aria-hidden="true"></i>&nbsp;&nbsp;Contact</a>
 </div>

@@ -5,7 +5,7 @@ baseurl:      ""
 paginate:     1
 
 # About/contact
-author:       
+author:
   name:       Robert firth
   url:        http://robfirth.github.io/
 github:       https://github.com/RobFirth/RobFirth.github.io
@@ -16,3 +16,7 @@ gems:
 
 #Others
 markdown: kramdown
+
+# Collections
+collections:
+- skills

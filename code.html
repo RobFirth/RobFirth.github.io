@@ -2,10 +2,23 @@
 layout: page
 title: My Code.
 heading: Code
-subheading: Code projects that I have been involved in.
+subheading: "Code projects that I have been involved in."
 ---
 
 <div>
 <i class="fa fa-github fa-2x" style="vertical-align:middle" aria-hidden="true"></i>&nbsp;<a href="https://github.com/RobFirth">RobFirth</a>
 </div>
 <hr>
+<div class="row">
+
+{% assign languages = site.skills | where: "categories", "language" %}
+{% assign loop_arr = site.skills | sort: "index" %}
+
+{% for skill in loop_arr %}
+  <div class="row">
+    <center>
+      <img src="{{ skill.logo }}" height="120" title="" /></a>      
+    </center>
+  </div>
+{% endfor %}
+</div>

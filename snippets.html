@@ -1,0 +1,20 @@
+{% comment %}
+# <!-- {% for skill in site.skills %} -->
+{% endcomment %}
+
+<h2>{{ skill.name }}</h2>
+
+
+{% assign languages = site.skills | where: "categories", "language" %}
+{% assign loop_arr = site.skills | sort: "index" %}
+
+{% include skill.url %}
+{{ site.baseurl }}
+
+<!-- <div class="row">
+{% for skill in site.skills %}
+  <div class="row">
+    <img src="{{ skill.logo }}" width="720" title="" /></a>
+  </div>
+{% endfor %}
+</div> -->

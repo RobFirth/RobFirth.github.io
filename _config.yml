@@ -16,6 +16,7 @@ gems:
 
 #Others
 markdown: kramdown
+# markdown: redcarpet
 
 # Collections
 collections:

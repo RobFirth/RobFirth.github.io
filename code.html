@@ -4,21 +4,32 @@ title: My Code.
 heading: Code
 subheading: "Code projects that I have been involved in."
 ---
-
 <div>
-<i class="fa fa-github fa-2x" style="vertical-align:middle" aria-hidden="true"></i>&nbsp;<a href="https://github.com/RobFirth">RobFirth</a>
-</div>
-<hr>
-<div class="row">
+  <h1>Code</h1>
+  <p>
 
-{% assign languages = site.skills | where: "categories", "language" %}
-{% assign loop_arr = site.skills | sort: "index" %}
-
-{% for skill in loop_arr %}
-  <div class="row">
-    <center>
-      <img src="{{ skill.logo }}" height="120" title="" /></a>      
-    </center>
+  </p>
+  
+  <div>
+  <i class="fa fa-github fa-2x" style="vertical-align:middle" aria-hidden="true"></i>&nbsp;<a href="https://github.com/RobFirth">RobFirth</a>
   </div>
-{% endfor %}
+  <hr>
+
+  <div>
+  <i class="fa fa-github-square fa-2x" style="vertical-align:middle" aria-hidden="true"></i>&nbsp;<a href="https://github.com/UoS-SNe">UoS-SNe</a>
+  </div>
+
+  <div class="row">
+
+  {% assign languages = site.skills | where: "categories", "language" %}
+  {% assign loop_arr = site.skills | sort: "index" %}
+
+  {% for skill in loop_arr %}
+    <div class="row">
+      <center>
+        <img src="{{ skill.logo }}" height="120" title="" /></a>
+      </center>
+    </div>
+  {% endfor %}
+  </div>
 </div>

@@ -1,0 +1,6 @@
+<div class="recent" id="myRecent">
+  <span><a href="#" style="color:#4CAF50">Most Recent Post&nbsp;<i class="fa fa-arrow-right" aria-hidden="true"></i></a></span>
+    {% for post in site.posts limit:1 %}
+       <a href="{{ site.baseurl }}{{ post.url }}">{{ post.date | date_to_string }}  {{ post.title }}</a>
+    {% endfor %}
+</div>

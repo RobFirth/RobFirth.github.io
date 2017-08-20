@@ -27,6 +27,39 @@
     color: white;
 }
 
+/* */
+
+/* Add a black background color to the top navigation */
+.recent {
+    background-color: #333;
+    overflow: hidden;
+}
+
+/* Style the links inside the navigation bar */
+.recent a {
+    float: left;
+    display: block;
+    color: #f2f2f2;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    font-size: 100%;
+}
+
+/* Change the color of links on hover */
+.recent a:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+/* Add a color to the active/current link */
+.recent a.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+/* */
+
 /* Add a black background color to the top navigation */
 .sidebar {
     background-color: #333;
@@ -37,7 +70,8 @@
 .sidebar a {
     float: left;
     display: block;
-    color: #f2f2f2;
+    /*color: #f2f2f2;*/
+    color: #008080;    
     text-align: center;
     padding: 14px 16px;
     text-decoration: none;

@@ -35,4 +35,15 @@ In the process of playing around with this I realised that this functionality wa
 
 ![Jupyter Thought of This!]( {{ "/images/jupyter_screenshot.png" | absolute_url }} " ")
 
-So they got there first - and with a reminder about the neat token auth features to boot. But there is a consolation - the shell script does seem faster!
+So they got there first - and with a reminder about the neat token auth features to boot. But there is a consolation - the shell script does seem faster! Additionally, if you really need to kill the process dead, you can get the PID too -
+
+{% highlight shell %}
+#!/bin/bash
+#
+# Show the paths to currently running jupyter notebooks
+#
+echo "pid: " $pid $(lsof -P -p $pid | awk '/ DIR / || /LISTEN/ { print $9 }' | uniq)
+      echo $(lsof -P -p $pid | awk '/ DIR / || /LISTEN/ { print $9 }' | uniq)
+done
+
+{% endhighlight %}

@@ -32,7 +32,7 @@ $ jupyter notebook password
 Enter password:  ****
 Verify password: ****
 [NotebookPasswordApp] Wrote hashed password to /Users/you/.jupyter/jupyter_notebook_config.json
-{% end highlight %}
+{% endhighlight %}
 
 You can prepare a hashed password manually, using the function notebook.auth.security.passwd():
 
@@ -42,7 +42,7 @@ In [2]: passwd()
 Enter password:
 Verify password:
 Out[2]: 'sha1:67c9e60bb8b6:9ffede0825894254b2e042ea597d771089e11aed'
-{% end highlight %}
+{% endhighlight %}
 
 You can then add the hashed password to your jupyter_notebook_config.py. *Reminder*: The default location for this file `jupyter_notebook_config.py` is in your Jupyter folder in your home directory, `~/.jupyter`, e.g.:
 
@@ -54,13 +54,13 @@ A self-signed certificate can be generated with openssl. For example, the follow
 
 {% highlight shell %}
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout mykey.key -out mycert.pem
-{% end highlight %}
+{% endhighlight %}
 
 You can start the notebook to communicate via a secure protocol mode by setting the certfile option to your self-signed certificate, i.e. mycert.pem, with the command:
 
 {% highlight shell %}
 jupyter notebook --certfile=mycert.pem --keyfile mykey.key
-{% end highlight %}
+{% endhighlight %}
 
 ## Running a Public Server
 
@@ -78,7 +78,7 @@ c.NotebookApp.password = <your hashed password here>
 
 # It is a good idea to set a known, fixed port for server access
 c.NotebookApp.port = 1234
-{% end highlight %}
+{% endhighlight %}
 You can then start the notebook using the jupyter notebook command.
 
 ## Get Connected!

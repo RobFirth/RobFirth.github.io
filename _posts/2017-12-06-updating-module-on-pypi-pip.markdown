@@ -3,6 +3,7 @@ layout: default
 title:  "Pushing an Update to Package on PyPi"
 date:   2017-12-06 15:00:00
 categories: main
+comments: True
 ---
 
 # Useful Python Tips - Pushing an Update to Package on PyPi
@@ -15,3 +16,7 @@ categories: main
 My package is now on PyPi - [https://pypi.org/project/pycocosn](https://pypi.org/project/pycocosn/)
 
 To update, change the version number and run: `python setup.py sdist upload`
+
+{% if page.comments %}
+  {% include disqus.html %}
+{% endif %}

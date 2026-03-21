@@ -1,0 +1,36 @@
+# Dr Rob Firth
+
+> AI Researcher · Hartree Centre, STFC
+
+AI researcher and certified data ethics professional based at the STFC Hartree Centre. Background in astrophysics (PhD, University of Southampton). Working on applied NLP, responsible AI, and AI for science.
+
+## Pages
+
+- [Home](https://robertfirth.co.uk/): Bio and areas of focus
+- [Interests](https://robertfirth.co.uk/interests/): Research interests in detail
+- [Contact](https://robertfirth.co.uk/contact/): Contact details and social links
+
+## Areas of Focus
+
+### Ethical AI & Responsible Innovation
+Certified Data Ethics Professional (ODI). Thinks carefully about responsible AI deployment — training data provenance, model transparency, and societal impact. This shapes every project.
+
+### NLP & Large Language Models
+Applied NLP and large language models for technical domains, including document processing and information extraction at scale on HPC platforms.
+
+### AI for Science
+Co-initiated the Intelligent Observatory programme with the South African Astronomical Observatory, applying AI to automate and improve telescope operations.
+
+### Astrophysics
+Former supernova researcher. PhD at the University of Southampton focused on Type Ia supernovae — thermonuclear explosions used as standard candles in cosmology.
+
+### Open Source & Software
+Python developer since PhD. Cares about well-tested, well-documented code and the tooling that makes research software sustainable.
+
+## Links
+
+- GitHub: https://github.com/RobFirth
+- LinkedIn: https://www.linkedin.com/in/robfirth
+- ORCID: https://orcid.org/0000-0002-9427-1850
+- Email: contact@robertfirth.co.uk
+- Intelligent Observatory (UKRI): https://www.ukri.org/news/uk-south-africa-partnership-uses-ai-to-make-telescopes-smarter/

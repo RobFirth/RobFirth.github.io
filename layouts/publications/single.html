@@ -1,0 +1,126 @@
+{{ define "main" }}
+<div class="page-content">
+  <h1>Publications</h1>
+  <p style="margin-bottom:2rem;">Full list via <a href="https://scholar.google.co.uk/citations?user=kQaQEuMAAAAJ">Google Scholar</a> · <a href="https://orcid.org/0000-0002-9427-1850">ORCID</a> · <a href="/publications.bib">Download .bib</a></p>
+  <div id="pub-list"><p style="color:var(--text-dim);font-family:var(--mono);font-size:0.85rem;">Loading...</p></div>
+</div>
+
+<script>
+(function () {
+  function cleanLatex(s) {
+    if (!s) return '';
+    return s
+      .replace(/\\['`^"~=.u]\{([^}]+)\}/g, '$1')
+      .replace(/\{\\['`^"~=.]\s*([^}]+)\}/g, '$1')
+      .replace(/\\[a-zA-Z]+\{([^}]+)\}/g, '$1')
+      .replace(/\{([^}]+)\}/g, '$1')
+      .replace(/--/g, '\u2013')
+      .trim();
+  }
+
+  function parseBibtex(text) {
+    var entries = [];
+    var re = /@(\w+)\s*\{\s*([^,\s]+)\s*,\s*([\s\S]*?)(?=\n@|\n*$)/g;
+    var m;
+    while ((m = re.exec(text + '\n@')) !== null) {
+      var type = m[1].toLowerCase();
+      var key = m[2].trim();
+      var body = m[3];
+      var fields = {};
+      var fr = /(\w+)\s*=\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g;
+      var f;
+      while ((f = fr.exec(body)) !== null) {
+        fields[f[1].toLowerCase()] = cleanLatex(f[2]);
+      }
+      if (!fields.title) continue;
+      entries.push({
+        type: type,
+        key: key,
+        title: fields.title,
+        authors: (fields.author || '').split(' and ').map(function(a){ return a.trim(); }),
+        venue: fields.journal || fields.booktitle || fields.school || '',
+        year: parseInt(fields.year) || 0,
+        volume: fields.volume || '',
+        number: fields.number || '',
+        pages: fields.pages || '',
+        publisher: fields.publisher || '',
+        organization: fields.organization || ''
+      });
+    }
+    return entries;
+  }
+
+  function isCircular(e) {
+    var circulars = ["Astronomer's Telegram", "Central Bureau Electronic Telegrams", "GRB Coordinates", "VizieR"];
+    return circulars.some(function(c){ return e.venue.indexOf(c) !== -1; });
+  }
+
+  function isThesis(e) { return e.type === 'phdthesis'; }
+
+  function isProceedings(e) { return e.type === 'inproceedings'; }
+
+  function formatAuthors(authors) {
+    var formatted = authors.map(function(a) {
+      var isFirth = /firth/i.test(a);
+      var display = a.replace(/^([^,]+),\s*(.*)$/, '$2 $1').trim();
+      if (isFirth) return '<strong style="color:var(--accent)">' + display + '</strong>';
+      return display;
+    });
+    if (formatted.length > 6) {
+      return formatted.slice(0, 5).join(', ') + ', et al.';
+    }
+    return formatted.join(', ');
+  }
+
+  function formatVenue(e) {
+    var parts = [e.venue];
+    if (e.volume) parts.push('vol. ' + e.volume);
+    if (e.number) parts.push('no. ' + e.number);
+    if (e.pages) parts.push('pp. ' + e.pages.replace('--', '\u2013'));
+    return parts.filter(Boolean).join(' · ');
+  }
+
+  function renderGroup(title, entries) {
+    if (!entries.length) return '';
+    var html = '<section class="pub-group"><h2>' + title + '</h2>';
+    var byYear = {};
+    entries.forEach(function(e) {
+      if (!byYear[e.year]) byYear[e.year] = [];
+      byYear[e.year].push(e);
+    });
+    Object.keys(byYear).sort(function(a,b){ return b-a; }).forEach(function(year) {
+      html += '<div class="pub-year"><span class="pub-year-label">' + year + '</span><ul class="pub-items">';
+      byYear[year].forEach(function(e) {
+        html += '<li class="pub-item"><p class="pub-title">' + e.title + '</p>';
+        html += '<p class="pub-meta">' + formatAuthors(e.authors) + '</p>';
+        html += '<p class="pub-venue">' + formatVenue(e) + '</p></li>';
+      });
+      html += '</ul></div>';
+    });
+    return html + '</section>';
+  }
+
+  fetch('/publications.bib')
+    .then(function(r){ return r.text(); })
+    .then(function(text) {
+      var all = parseBibtex(text);
+      all.sort(function(a,b){ return b.year - a.year; });
+
+      var papers = all.filter(function(e){ return !isCircular(e) && !isThesis(e) && !isProceedings(e); });
+      var proceedings = all.filter(isProceedings);
+      var thesis = all.filter(isThesis);
+      var circulars = all.filter(isCircular);
+
+      var html = renderGroup('Papers & Preprints', papers)
+               + renderGroup('Conference Proceedings', proceedings)
+               + renderGroup('Thesis', thesis)
+               + renderGroup('Circulars & Reports', circulars);
+
+      document.getElementById('pub-list').innerHTML = html;
+    })
+    .catch(function() {
+      document.getElementById('pub-list').innerHTML = '<p style="color:var(--text-dim)">Could not load publications. <a href="/publications.bib">Download .bib</a></p>';
+    });
+}());
+</script>
+{{ end }}

@@ -36,7 +36,7 @@ The best way to reach me is by email.
 
 </div>
 
-<figure class="photo-feature" style="margin-top: 3rem;">
+<figure class="photo-feature">
   <img src="/img/ai-summit-panel.webp" alt="Liverpool City Region AI Summit 2024">
   <figcaption>Liverpool City Region AI Summit 2024</figcaption>
 </figure>

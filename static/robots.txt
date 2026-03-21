@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://robertfirth.co.uk/sitemap.xml
+LLMs: https://robertfirth.co.uk/llms.txt

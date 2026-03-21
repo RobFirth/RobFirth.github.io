@@ -73,10 +73,13 @@ main { flex: 1; max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutt
 .interest-block:last-child { border-bottom: none; }
 
 .contact-links { margin-top: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
-.contact-item { padding: 1.25rem; border: 1px solid var(--border); background: var(--bg-raised); max-width: 400px; }
-.contact-icon { font-family: var(--mono); font-size: 0.8rem; color: var(--accent); display: block; margin-bottom: 0.5rem; }
-.contact-item strong { font-family: var(--display); font-size: 0.85rem; color: var(--text-bright); display: block; margin-bottom: 0.25rem; }
-.contact-item a { font-size: 0.9rem; }
+.contact-item { padding: 1.25rem; border: 1px solid var(--border); background: var(--bg-raised); max-width: 400px; display: flex; align-items: center; gap: 1.25rem; transition: background 0.2s; }
+.contact-item:hover { background: var(--bg); }
+.contact-icon { color: var(--accent); flex-shrink: 0; display: flex; align-items: center; }
+.contact-icon svg { width: 1.5rem; height: 1.5rem; }
+.contact-item:hover .contact-icon { color: var(--text-bright); }
+.contact-item-text strong { font-family: var(--display); font-size: 0.85rem; color: var(--text-bright); display: block; margin-bottom: 0.25rem; }
+.contact-item-text a { font-size: 0.9rem; }
 
 footer { border-top: 1px solid var(--border); margin-top: auto; }
 .footer-inner { max-width: var(--measure); margin: 0 auto; padding: 2rem var(--gutter); }
@@ -85,6 +88,18 @@ footer { border-top: 1px solid var(--border); margin-top: auto; }
 .footer-links a:hover { color: var(--accent); }
 .footer-links .sep { color: var(--border); margin: 0 0.25rem; }
 .footer-note { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); }
+
+/* Publications */
+.pub-group { margin-bottom: 3rem; }
+.pub-group h2 { font-family: var(--display); font-size: 1rem; font-weight: 700; color: var(--accent); margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+.pub-year { display: flex; gap: 2rem; margin-bottom: 1.5rem; }
+.pub-year-label { font-family: var(--mono); font-size: 0.8rem; color: var(--text-dim); min-width: 3rem; padding-top: 0.2rem; }
+.pub-items { list-style: none; flex: 1; display: flex; flex-direction: column; gap: 1.25rem; }
+.pub-item { padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+.pub-item:last-child { border-bottom: none; padding-bottom: 0; }
+.pub-title { font-family: var(--serif); font-size: 0.95rem; color: var(--text-bright); margin-bottom: 0.35rem; line-height: 1.5; }
+.pub-meta { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 0.25rem; line-height: 1.5; }
+.pub-venue { font-family: var(--mono); font-size: 0.75rem; color: var(--text-dim); }
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 100; padding: var(--gutter); opacity: 0; pointer-events: none; transition: opacity 0.2s; }

@@ -22,3 +22,7 @@ title = "Dr Rob Firth"
     name = "Contact"
     url = "/contact/"
     weight = 3
+  [[menu.main]]
+    name = "Publications"
+    url = "/publications/"
+    weight = 4

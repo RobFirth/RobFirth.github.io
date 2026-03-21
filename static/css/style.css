@@ -72,8 +72,8 @@ main { flex: 1; max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutt
 .interest-block { padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
 .interest-block:last-child { border-bottom: none; }
 
-.contact-links { margin-top: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
-.contact-item { padding: 1.25rem; border: 1px solid var(--border); background: var(--bg-raised); max-width: 400px; display: flex; align-items: center; gap: 1.25rem; transition: background 0.2s; }
+.contact-links { margin-top: 2rem; display: flex; flex-direction: column; gap: 1.5rem; align-items: center; }
+.contact-item { padding: 1.25rem; border: 1px solid var(--border); background: var(--bg-raised); width: 100%; max-width: 400px; display: flex; align-items: center; gap: 1.25rem; transition: background 0.2s; }
 .contact-item:hover { background: var(--bg); }
 .contact-icon { color: var(--accent); flex-shrink: 0; display: flex; align-items: center; }
 .contact-icon svg { width: 1.5rem; height: 1.5rem; }

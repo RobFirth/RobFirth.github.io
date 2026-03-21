@@ -1,0 +1,56 @@
+{{ define "main" }}
+<section class="hero">
+  <div class="hero-layout">
+    <div class="hero-text">
+      <h1>Dr Rob Firth</h1>
+      <p class="tagline">AI Researcher · <a href="https://www.hartree.stfc.ac.uk/">Hartree Centre</a>, STFC</p>
+      <p class="intro">AI researcher and certified data ethics professional. I work on applied AI and responsible innovation, with a background in astrophysics.</p>
+      <div class="hero-links">
+        <a href="{{ .Site.Params.github }}">GitHub</a>
+        <a href="{{ .Site.Params.linkedin }}">LinkedIn</a>
+        <a href="{{ .Site.Params.orcid }}">ORCID</a>
+        <a href="mailto:{{ .Site.Params.email }}">Email</a>
+      </div>
+    </div>
+    <div class="hero-photo">
+      <img src="/img/headshot.webp" alt="Dr Rob Firth">
+    </div>
+  </div>
+</section>
+
+<section class="interests-preview">
+  <h2>Areas of focus</h2>
+  <div class="tile-grid">
+    <a href="/interests/#ethical-ai" class="tile">
+      <span class="tile-label">⚖</span>
+      <h3>Ethical AI &amp; Responsible Innovation</h3>
+      <p>ODI-certified data ethics professional. Building AI systems that are transparent, robust, and trustworthy.</p>
+    </a>
+    <a href="/interests/#nlp" class="tile">
+      <span class="tile-label">&gt;_</span>
+      <h3>NLP &amp; Large Language Models</h3>
+      <p>Applied NLP and language modelling for technical and scientific domains.</p>
+    </a>
+    <a href="/interests/#ai-for-science" class="tile">
+      <span class="tile-label">◈</span>
+      <h3>AI for Science</h3>
+      <p>Applying AI to accelerate scientific discovery, from automated observatories to literature mining.</p>
+    </a>
+    <a href="/interests/#astrophysics" class="tile">
+      <span class="tile-label">✦</span>
+      <h3>Astrophysics</h3>
+      <p>Former supernova researcher. PhD in the physics of Type Ia supernovae.</p>
+    </a>
+    <a href="/interests/#open-source" class="tile">
+      <span class="tile-label">/</span>
+      <h3>Open Source &amp; Software</h3>
+      <p>Python, open-source scientific tooling, and the infrastructure that makes good research code possible.</p>
+    </a>
+  </div>
+</section>
+
+<figure class="photo-feature">
+  <img src="/img/hartree-talk.webp" alt="Presenting on responsible AI at the AI in Healthcare Symposium">
+  <figcaption>Presenting on responsible AI — <a href="https://www.healthinnovationnwc.nhs.uk/news/AI-in-healthcare-symposium">AI in Healthcare Symposium</a>, Liverpool</figcaption>
+</figure>
+{{ end }}

@@ -1,0 +1,14 @@
+<footer>
+  <div class="footer-inner">
+    <div class="footer-links">
+      <a href="{{ .Site.Params.github }}">GitHub</a>
+      <span class="sep">·</span>
+      <a href="{{ .Site.Params.linkedin }}">LinkedIn</a>
+      <span class="sep">·</span>
+      <a href="{{ .Site.Params.orcid }}">ORCID</a>
+      <span class="sep">·</span>
+      <a href="mailto:{{ .Site.Params.email }}">Email</a>
+    </div>
+    <p class="footer-note">© {{ now.Year }} {{ .Site.Title }}</p>
+  </div>
+</footer>

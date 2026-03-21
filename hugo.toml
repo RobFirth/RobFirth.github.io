@@ -1,0 +1,24 @@
+baseURL = "https://robertfirth.co.uk/"
+languageCode = "en-gb"
+title = "Dr Rob Firth"
+
+[params]
+  description = "AI Researcher · Hartree Centre · STFC"
+  email = "contact@robertfirth.co.uk"
+  github = "https://github.com/RobFirth"
+  linkedin = "https://www.linkedin.com/in/robfirth"
+  orcid = "https://orcid.org/0000-0002-9427-1850"
+
+[menu]
+  [[menu.main]]
+    name = "Home"
+    url = "/"
+    weight = 1
+  [[menu.main]]
+    name = "Interests"
+    url = "/interests/"
+    weight = 2
+  [[menu.main]]
+    name = "Contact"
+    url = "/contact/"
+    weight = 3

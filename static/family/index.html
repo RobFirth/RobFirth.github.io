@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family · Dr Rob Firth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e1117;
+    --bg-card: #161b22;
+    --bg-card-hover: #1c222b;
+    --accent: #58a6ff;
+    --accent-dim: rgba(88, 166, 255, 0.12);
+    --accent-glow: rgba(88, 166, 255, 0.25);
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --border: #30363d;
+    --error-bg: rgba(248, 81, 73, 0.1);
+    --error-border: rgba(248, 81, 73, 0.4);
+    --error-text: #f85149;
+    --success-bg: rgba(63, 185, 80, 0.1);
+    --success-text: #3fb950;
+    --google-blue: #4285f4;
+    --google-blue-hover: #3367d6;
+    --font-display: 'Space Mono', monospace;
+    --font-body: 'Outfit', -apple-system, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── NAV ── */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  nav .site-name {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    color: var(--text);
+    text-decoration: none;
+    letter-spacing: -0.5px;
+  }
+
+  nav .site-name:hover { color: var(--accent); }
+
+  nav .nav-links {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  nav .nav-links a {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  nav .nav-links a:hover { color: var(--text); }
+  nav .nav-links a.active { color: var(--accent); }
+
+  .user-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 4px 14px 4px 4px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .user-pill:hover { border-color: var(--text-dim); }
+
+  .user-pill img {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+  }
+
+  .user-pill .sign-out-text {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+  }
+
+  /* ── SIGN-IN VIEW ── */
+  .auth-container {
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+  }
+
+  .lock-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 24px;
+    border-radius: 12px;
+    background: var(--accent-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lock-icon svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .auth-container h1 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .auth-container .subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 32px;
+    font-weight: 300;
+    line-height: 1.5;
+  }
+
+  .google-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--google-blue);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: 0.2px;
+  }
+
+  .google-btn:hover {
+    background: var(--google-blue-hover);
+    transform: translateY(-1px);
+  }
+
+  .google-btn:active { transform: translateY(0); }
+
+  .google-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .auth-footer-note {
+    margin-top: 20px;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+
+  /* ── ERROR ── */
+  .error-banner {
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 0.88rem;
+    color: var(--error-text);
+    text-align: left;
+    display: none;
+  }
+
+  .error-banner.visible { display: block; }
+
+  /* ── DASHBOARD ── */
+  .dashboard {
+    max-width: 680px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .dashboard-header {
+    margin-bottom: 36px;
+  }
+
+  .dashboard-header h1 {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+
+  .dashboard-header p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 300;
+  }
+
+  .app-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .app-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 20px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .app-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+  }
+
+  .app-card .card-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+  }
+
+  .app-card h3 {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .app-card p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 300;
+    line-height: 1.4;
+  }
+
+  .app-card.coming-soon {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .app-card .badge {
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.05);
+    padding: 3px 8px;
+    border-radius: 4px;
+    align-self: flex-start;
+  }
+
+  /* ── LOADING ── */
+  .loading-view {
+    text-align: center;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-view p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+  }
+
+  footer a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  footer a:hover { color: var(--accent); }
+
+  /* ── UTILITIES ── */
+  .hidden { display: none !important; }
+
+  @media (max-width: 600px) {
+    nav { padding: 12px 16px; }
+    nav .nav-links { gap: 14px; }
+    main { padding: 32px 16px; }
+    .auth-container h1 { font-size: 1.3rem; }
+    .dashboard-header h1 { font-size: 1.3rem; }
+    .app-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="https://robfirth.github.io/" class="site-name">Dr Rob Firth</a>
+  <div class="nav-links">
+    <a href="https://robfirth.github.io/">Home</a>
+    <a href="https://robfirth.github.io/interests/">Interests</a>
+    <a href="https://robfirth.github.io/contact/">Contact</a>
+    <a href="/family/" class="active">Family</a>
+    <!-- User pill injected here by JS when signed in -->
+    <span id="user-nav"></span>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main>
+
+  <!-- LOADING STATE -->
+  <div id="view-loading" class="loading-view">
+    <div class="spinner"></div>
+    <p>Checking session…</p>
+  </div>
+
+  <!-- SIGN-IN STATE -->
+  <div id="view-signin" class="auth-container hidden">
+    <div class="lock-icon">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h1>Firth Family</h1>
+    <p class="subtitle">This area is for family members only.<br>Sign in with your Google account to continue.</p>
+
+    <div id="error-banner" class="error-banner"></div>
+
+    <button class="google-btn" id="btn-signin">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.97 23.97 0 0 0 0 24c0 3.77.9 7.35 2.56 10.56l7.97-5.97z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.97C6.51 42.62 14.62 48 24 48z"/></svg>
+      Sign in with Google
+    </button>
+
+    <p class="auth-footer-note">Only approved family email addresses can sign in.</p>
+  </div>
+
+  <!-- DASHBOARD STATE -->
+  <div id="view-dashboard" class="dashboard hidden">
+    <div class="dashboard-header">
+      <h1 id="greeting">Welcome back</h1>
+      <p>Pick an app below, or sit tight — more are coming soon.</p>
+    </div>
+
+    <div class="app-grid">
+      <a class="app-card coming-soon" href="#">
+        <span class="card-icon">🍳</span>
+        <h3>Recipes</h3>
+        <p>Family favourites, saved and searchable.</p>
+        <span class="badge">Coming soon</span>
+      </a>
+
+      <a class="app-card coming-soon" href="#">
+        <span class="card-icon">📊</span>
+        <h3>Crossword Scores</h3>
+        <p>Daily crossword leaderboard.</p>
+        <span class="badge">Coming soon</span>
+      </a>
+
+      <a class="app-card coming-soon" href="#">
+        <span class="card-icon">📸</span>
+        <h3>Photos</h3>
+        <p>Shared family photo albums.</p>
+        <span class="badge">Coming soon</span>
+      </a>
+
+      <a class="app-card coming-soon" href="#">
+        <span class="card-icon">📋</span>
+        <h3>Lists</h3>
+        <p>Shared shopping &amp; to-do lists.</p>
+        <span class="badge">Coming soon</span>
+      </a>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <a href="https://robfirth.github.io/">← Back to main site</a>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- Firebase SDK (compat for simplicity)               -->
+<!-- ═══════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<script>
+  // ──────────────────────────────────────────────────────────
+  //  🔧  FIREBASE CONFIG
+  //  Fill these in from Firebase console → Project Settings
+  //  → General → Your apps → Web app → Config snippet
+  // ──────────────────────────────────────────────────────────
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCJnQMozwTpWT0QTd2Nd_e4XZpuqi1HRCs",
+    authDomain:        "family-project-490909.firebaseapp.com",
+    projectId:         "family-project-490909",
+    storageBucket:     "family-project-490909.appspot.com",
+    messagingSenderId: "777532140341",
+    appId:             "1:777532140341:web:a061c843351a58aed9ba7c"
+  };
+  // ──────────────────────────────────────────────────────────
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  // DOM refs
+  const viewLoading   = document.getElementById('view-loading');
+  const viewSignin    = document.getElementById('view-signin');
+  const viewDashboard = document.getElementById('view-dashboard');
+  const btnSignin     = document.getElementById('btn-signin');
+  const errorBanner   = document.getElementById('error-banner');
+  const userNav       = document.getElementById('user-nav');
+  const greeting      = document.getElementById('greeting');
+
+  // ── Auth state listener ──
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      showView('dashboard');
+      const firstName = user.displayName ? user.displayName.split(' ')[0] : 'there';
+      greeting.textContent = `Hey, ${firstName}`;
+      renderUserPill(user);
+    } else {
+      showView('signin');
+      userNav.innerHTML = '';
+    }
+  });
+
+  // ── Sign in ──
+  btnSignin.addEventListener('click', async () => {
+    hideError();
+    try {
+      await auth.signInWithPopup(provider);
+    } catch (err) {
+      console.error('Sign-in error:', err);
+      if (err.code === 'auth/internal-error' || err.message?.includes('BLOCKING_FUNCTION_ERROR')) {
+        showError("Sorry, this app is for family only. If you think you should have access, ask Rob.");
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        // user closed the popup — do nothing
+      } else {
+        showError("Something went wrong. Please try again.");
+      }
+    }
+  });
+
+  // ── Sign out ──
+  function signOut() {
+    auth.signOut();
+  }
+
+  // ── View switching ──
+  function showView(name) {
+    viewLoading.classList.add('hidden');
+    viewSignin.classList.add('hidden');
+    viewDashboard.classList.add('hidden');
+    if (name === 'loading')   viewLoading.classList.remove('hidden');
+    if (name === 'signin')    viewSignin.classList.remove('hidden');
+    if (name === 'dashboard') viewDashboard.classList.remove('hidden');
+  }
+
+  // ── Error display ──
+  function showError(msg) {
+    errorBanner.textContent = msg;
+    errorBanner.classList.add('visible');
+  }
+  function hideError() {
+    errorBanner.classList.remove('visible');
+  }
+
+  // ── User pill in nav ──
+  function renderUserPill(user) {
+    const photo = user.photoURL || '';
+    const name = user.displayName || user.email;
+    userNav.innerHTML = `
+      <button class="user-pill" onclick="signOut()" title="Sign out">
+        ${photo ? `<img src="${photo}" alt="">` : ''}
+        <span>${name}</span>
+        <span class="sign-out-text">Sign out</span>
+      </button>
+    `;
+  }
+</script>
+
+</body>
+</html>

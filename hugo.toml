@@ -27,6 +27,6 @@ title = "Dr Rob Firth"
     url = "/publications/"
     weight = 4
   [[menu.main]]
-    name = "Family"
+    name = "Login"
     url = "/family/"
     weight = 5

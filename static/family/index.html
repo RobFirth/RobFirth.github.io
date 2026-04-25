@@ -66,14 +66,17 @@
 
   nav .nav-links {
     display: flex;
-    gap: 20px;
+    gap: 1.75rem;
     align-items: center;
   }
 
   nav .nav-links a {
-    font-size: 0.85rem;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
     color: var(--text-muted);
     text-decoration: none;
+    text-transform: lowercase;
+    letter-spacing: 0.03em;
     transition: color 0.15s;
   }
 
@@ -357,7 +360,7 @@
     <a href="https://robfirth.github.io/">Home</a>
     <a href="https://robfirth.github.io/interests/">Interests</a>
     <a href="https://robfirth.github.io/contact/">Contact</a>
-    <a href="/family/" class="active">Family</a>
+    <a href="/family/" class="active">Login</a>
     <!-- User pill injected here by JS when signed in -->
     <span id="user-nav"></span>
   </div>

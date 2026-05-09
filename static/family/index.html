@@ -338,6 +338,12 @@
 
   footer a:hover { color: var(--accent); }
 
+  /* ── PAGE VIEWER ── */
+  #page-viewer {
+    width: 100%;
+    align-self: flex-start;
+  }
+
   /* ── UTILITIES ── */
   .hidden { display: none !important; }
 
@@ -401,6 +407,12 @@
     </div>
 
     <div class="app-grid">
+      <div class="app-card" onclick="loadPage('kneehab')" style="cursor:pointer;">
+        <span class="card-icon">🦵</span>
+        <h3>Knee Recovery</h3>
+        <p>MCL recovery plan &amp; exercises</p>
+      </div>
+
       <a class="app-card coming-soon" href="#">
         <span class="card-icon">🍳</span>
         <h3>Recipes</h3>
@@ -431,6 +443,12 @@
     </div>
   </div>
 
+  <!-- PAGE VIEWER -->
+  <div id="page-viewer" class="hidden">
+    <button onclick="closePage()" style="background:none; border:1px solid rgba(255,255,255,0.3); color:white; padding:8px 16px; border-radius:6px; cursor:pointer; margin-bottom:20px; font-family:inherit;">← Back to dashboard</button>
+    <div id="page-content"></div>
+  </div>
+
 </main>
 
 <footer>
@@ -442,6 +460,7 @@
 <!-- ═══════════════════════════════════════════════════ -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
   // ──────────────────────────────────────────────────────────
@@ -467,6 +486,7 @@
   const viewLoading   = document.getElementById('view-loading');
   const viewSignin    = document.getElementById('view-signin');
   const viewDashboard = document.getElementById('view-dashboard');
+  const viewPageViewer = document.getElementById('page-viewer');
   const btnSignin     = document.getElementById('btn-signin');
   const errorBanner   = document.getElementById('error-banner');
   const userNav       = document.getElementById('user-nav');
@@ -512,6 +532,7 @@
     viewLoading.classList.add('hidden');
     viewSignin.classList.add('hidden');
     viewDashboard.classList.add('hidden');
+    viewPageViewer.classList.add('hidden');
     if (name === 'loading')   viewLoading.classList.remove('hidden');
     if (name === 'signin')    viewSignin.classList.remove('hidden');
     if (name === 'dashboard') viewDashboard.classList.remove('hidden');
@@ -537,6 +558,41 @@
         <span class="sign-out-text">Sign out</span>
       </button>
     `;
+  }
+</script>
+
+<script>
+  // ── Firestore page loader ──
+  const db = firebase.firestore();
+
+  async function loadPage(pageId) {
+    const content = document.getElementById('page-content');
+
+    content.innerHTML = '<p style="color: var(--text-muted);">Loading…</p>';
+    viewPageViewer.classList.remove('hidden');
+    viewDashboard.classList.add('hidden');
+
+    try {
+      const doc = await db.collection('pages').doc(pageId).get();
+      if (doc.exists) {
+        content.innerHTML = doc.data().html;
+        content.querySelectorAll('script').forEach(oldScript => {
+          const newScript = document.createElement('script');
+          newScript.textContent = oldScript.textContent;
+          oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+      } else {
+        content.innerHTML = '<p style="color: var(--text-muted);">Page not found.</p>';
+      }
+    } catch (err) {
+      console.error('Error loading page:', err);
+      content.innerHTML = '<p style="color: var(--text-muted);">Error loading content. Please try again.</p>';
+    }
+  }
+
+  function closePage() {
+    viewPageViewer.classList.add('hidden');
+    viewDashboard.classList.remove('hidden');
   }
 </script>
 

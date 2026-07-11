@@ -344,6 +344,181 @@
     align-self: flex-start;
   }
 
+  /* ── CROSSWORD SCORES ── */
+  #view-crossword {
+    max-width: 680px;
+    width: 100%;
+    margin: 0 auto;
+    align-self: flex-start;
+  }
+
+  .crossword-header {
+    margin-bottom: 24px;
+  }
+
+  .crossword-header h1 {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+
+  .crossword-header p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 300;
+  }
+
+  .crossword-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .crossword-card h2 {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin-bottom: 14px;
+  }
+
+  .crossword-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .crossword-form input[type="text"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 1rem;
+    padding: 10px 12px;
+    width: 110px;
+    text-align: center;
+  }
+
+  .crossword-form input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .crossword-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .crossword-check input {
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .crossword-submit {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+  }
+
+  .crossword-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+  .crossword-submit:active { transform: translateY(0); }
+
+  .form-msg {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    display: none;
+  }
+
+  .form-msg.visible { display: block; }
+  .form-msg.error { color: var(--error-text); }
+  .form-msg.success { color: var(--success-text); }
+
+  .leaderboard {
+    list-style: none;
+  }
+
+  .leaderboard li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+
+  .leaderboard li.me {
+    background: var(--accent-dim);
+  }
+
+  .leaderboard .rank {
+    font-family: var(--font-display);
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    width: 1.6em;
+  }
+
+  .leaderboard .lb-name {
+    flex: 1;
+  }
+
+  .leaderboard .lb-time {
+    font-family: var(--font-display);
+    color: var(--accent);
+  }
+
+  .crossword-empty {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 300;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .stat {
+    text-align: center;
+    padding: 12px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .stat .stat-value {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .stat .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
   /* ── UTILITIES ── */
   .hidden { display: none !important; }
 
@@ -420,12 +595,11 @@
         <span class="badge">Coming soon</span>
       </a>
 
-      <a class="app-card coming-soon" href="#">
+      <div class="app-card" onclick="openCrossword()" style="cursor:pointer;">
         <span class="card-icon">📊</span>
         <h3>Crossword Scores</h3>
         <p>Daily crossword leaderboard.</p>
-        <span class="badge">Coming soon</span>
-      </a>
+      </div>
 
       <a class="app-card coming-soon" href="#">
         <span class="card-icon">📸</span>
@@ -447,6 +621,55 @@
   <div id="page-viewer" class="hidden">
     <button onclick="closePage()" style="background:none; border:1px solid rgba(255,255,255,0.3); color:white; padding:8px 16px; border-radius:6px; cursor:pointer; margin-bottom:20px; font-family:inherit;">← Back to dashboard</button>
     <div id="page-content"></div>
+  </div>
+
+  <!-- CROSSWORD SCORES -->
+  <div id="view-crossword" class="hidden">
+    <button onclick="closeCrossword()" style="background:none; border:1px solid rgba(255,255,255,0.3); color:white; padding:8px 16px; border-radius:6px; cursor:pointer; margin-bottom:20px; font-family:inherit;">← Back to dashboard</button>
+
+    <div class="crossword-header">
+      <h1>📊 Crossword Scores</h1>
+      <p id="crossword-date"></p>
+    </div>
+
+    <div class="crossword-card">
+      <h2 id="crossword-form-title">Log today's time</h2>
+      <form class="crossword-form" onsubmit="submitScore(event)">
+        <input type="text" id="crossword-time" placeholder="mm:ss" inputmode="numeric" autocomplete="off" aria-label="Time in minutes and seconds">
+        <label class="crossword-check">
+          <input type="checkbox" id="crossword-completed" checked>
+          I finished it
+        </label>
+        <button type="submit" class="crossword-submit" id="crossword-submit">Submit</button>
+      </form>
+      <p id="crossword-form-msg" class="form-msg"></p>
+    </div>
+
+    <div class="crossword-card">
+      <h2>Today's Leaderboard</h2>
+      <ol id="crossword-leaderboard" class="leaderboard"></ol>
+      <p id="crossword-empty" class="crossword-empty hidden">Nobody has logged a time yet today — be the first! 🏆</p>
+      <p id="crossword-lb-error" class="form-msg error"></p>
+    </div>
+
+    <div class="crossword-card">
+      <h2>Your Stats</h2>
+      <div class="stats-grid">
+        <div class="stat">
+          <span class="stat-value" id="stat-streak">–</span>
+          <span class="stat-label">Day streak</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-best">–</span>
+          <span class="stat-label">Best time</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-total">–</span>
+          <span class="stat-label">Entries</span>
+        </div>
+      </div>
+      <p id="crossword-stats-error" class="form-msg error"></p>
+    </div>
   </div>
 
 </main>
@@ -487,6 +710,7 @@
   const viewSignin    = document.getElementById('view-signin');
   const viewDashboard = document.getElementById('view-dashboard');
   const viewPageViewer = document.getElementById('page-viewer');
+  const viewCrossword = document.getElementById('view-crossword');
   const btnSignin     = document.getElementById('btn-signin');
   const errorBanner   = document.getElementById('error-banner');
   const userNav       = document.getElementById('user-nav');
@@ -517,7 +741,7 @@
       } else if (err.code === 'auth/popup-closed-by-user') {
         // user closed the popup — do nothing
       } else {
-        showError("Something went wrong. Please try again.");
+        showError(`Something went wrong (${err.code || err.message}). Please try again.`);
       }
     }
   });
@@ -533,6 +757,7 @@
     viewSignin.classList.add('hidden');
     viewDashboard.classList.add('hidden');
     viewPageViewer.classList.add('hidden');
+    viewCrossword.classList.add('hidden');
     if (name === 'loading')   viewLoading.classList.remove('hidden');
     if (name === 'signin')    viewSignin.classList.remove('hidden');
     if (name === 'dashboard') viewDashboard.classList.remove('hidden');
@@ -593,6 +818,189 @@
   function closePage() {
     viewPageViewer.classList.add('hidden');
     viewDashboard.classList.remove('hidden');
+  }
+</script>
+
+<script>
+  // ── Crossword Scores ──
+  const SCORES = 'crossword_scores';
+
+  // "YYYY-MM-DD" in *local* time (toISOString would give UTC)
+  function localDateStr(d = new Date()) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // "12:34" → 754 seconds; also accepts bare minutes ("12"). Returns null if invalid.
+  function parseTimeToSeconds(str) {
+    const t = str.trim();
+    let m = t.match(/^(\d{1,3}):([0-5]?\d)$/);
+    if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    m = t.match(/^(\d{1,3})$/);
+    if (m) return parseInt(m[1], 10) * 60;
+    return null;
+  }
+
+  function formatSeconds(s) {
+    const mins = Math.floor(s / 60);
+    const secs = Math.round(s % 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s ?? '';
+    return div.innerHTML;
+  }
+
+  function crosswordMsg(id, text, kind) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.classList.remove('error', 'success', 'visible');
+    if (text) el.classList.add(kind, 'visible');
+  }
+
+  function openCrossword() {
+    viewDashboard.classList.add('hidden');
+    viewCrossword.classList.remove('hidden');
+    document.getElementById('crossword-date').textContent =
+      new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    crosswordMsg('crossword-form-msg', '', 'success');
+    prefillTodayEntry();
+    renderLeaderboard();
+    renderMyStats();
+  }
+
+  function closeCrossword() {
+    viewCrossword.classList.add('hidden');
+    viewDashboard.classList.remove('hidden');
+  }
+
+  // If today's entry exists, prefill the form so it reads as "edit today's time"
+  async function prefillTodayEntry() {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      const doc = await db.collection(SCORES).doc(`${localDateStr()}_${user.uid}`).get();
+      const isEdit = doc.exists;
+      if (isEdit) {
+        document.getElementById('crossword-time').value = formatSeconds(doc.data().timeSeconds);
+        document.getElementById('crossword-completed').checked = doc.data().completed;
+      }
+      document.getElementById('crossword-form-title').textContent = isEdit ? "Edit today's time" : "Log today's time";
+      document.getElementById('crossword-submit').textContent = isEdit ? 'Update' : 'Submit';
+    } catch (err) {
+      console.error('Error loading today\'s entry:', err);
+    }
+  }
+
+  async function submitScore(event) {
+    event.preventDefault();
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const timeSeconds = parseTimeToSeconds(document.getElementById('crossword-time').value);
+    if (timeSeconds === null || timeSeconds > 86400) {
+      crosswordMsg('crossword-form-msg', 'Please enter your time as mm:ss (e.g. 12:34).', 'error');
+      return;
+    }
+    const completed = document.getElementById('crossword-completed').checked;
+    const date = localDateStr();
+    const ref = db.collection(SCORES).doc(`${date}_${user.uid}`);
+
+    try {
+      // Read first: only set createdAt on first write, so edits never reset it
+      const existing = await ref.get();
+      if (existing.exists) {
+        await ref.update({
+          timeSeconds,
+          completed,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } else {
+        await ref.set({
+          uid: user.uid,
+          displayName: user.displayName || user.email,
+          date,
+          timeSeconds,
+          completed,
+          puzzle: 'daily',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+      crosswordMsg('crossword-form-msg', existing.exists ? 'Updated! ✓' : 'Logged! ✓', 'success');
+      prefillTodayEntry();
+      renderLeaderboard();
+      renderMyStats();
+    } catch (err) {
+      console.error('Error saving score:', err);
+      crosswordMsg('crossword-form-msg', 'Couldn\'t save your score. Please try again.', 'error');
+    }
+  }
+
+  async function renderLeaderboard() {
+    const user = auth.currentUser;
+    if (!user) return;
+    const list = document.getElementById('crossword-leaderboard');
+    const empty = document.getElementById('crossword-empty');
+    crosswordMsg('crossword-lb-error', '', 'error');
+
+    try {
+      // Single-field equality query; filter/sort in JS (no composite index needed)
+      const snap = await db.collection(SCORES).where('date', '==', localDateStr()).get();
+      const rows = snap.docs.map(d => d.data())
+        .filter(r => r.completed === true)
+        .sort((a, b) => a.timeSeconds - b.timeSeconds);
+
+      list.innerHTML = rows.map((r, i) => `
+        <li class="${r.uid === user.uid ? 'me' : ''}">
+          <span class="rank">${i + 1}</span>
+          <span class="lb-name">${escapeHtml(r.displayName)}${r.uid === user.uid ? ' (you)' : ''}</span>
+          <span class="lb-time">${formatSeconds(r.timeSeconds)}</span>
+        </li>`).join('');
+      empty.classList.toggle('hidden', rows.length > 0);
+    } catch (err) {
+      console.error('Error loading leaderboard:', err);
+      crosswordMsg('crossword-lb-error', 'Couldn\'t load the leaderboard.', 'error');
+    }
+  }
+
+  async function renderMyStats() {
+    const user = auth.currentUser;
+    if (!user) return;
+    crosswordMsg('crossword-stats-error', '', 'error');
+
+    try {
+      // Single-field equality query; sort/aggregate in JS
+      const snap = await db.collection(SCORES).where('uid', '==', user.uid).get();
+      const rows = snap.docs.map(d => d.data());
+      const completedRows = rows.filter(r => r.completed === true);
+
+      // Current streak: consecutive days with a completed entry, up to today
+      // (today not logged yet doesn't break a streak ending yesterday)
+      const days = new Set(completedRows.map(r => r.date));
+      let streak = 0;
+      const cursor = new Date();
+      if (!days.has(localDateStr(cursor))) cursor.setDate(cursor.getDate() - 1);
+      while (days.has(localDateStr(cursor))) {
+        streak++;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+
+      const best = completedRows.length
+        ? formatSeconds(Math.min(...completedRows.map(r => r.timeSeconds)))
+        : '–';
+
+      document.getElementById('stat-streak').textContent = streak;
+      document.getElementById('stat-best').textContent = best;
+      document.getElementById('stat-total').textContent = rows.length;
+    } catch (err) {
+      console.error('Error loading stats:', err);
+      crosswordMsg('crossword-stats-error', 'Couldn\'t load your stats.', 'error');
+    }
   }
 </script>
 

@@ -13,3 +13,6 @@ resources/
 
 # Tools
 .chunkhound/
+
+# local CLAUDE.md 
+CLAUDE.local.md

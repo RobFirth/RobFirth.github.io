@@ -563,6 +563,121 @@
     min-height: 260px;
   }
 
+  /* ── MY SOLVES (tappable history list + editor) ── */
+  .add-day-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .add-day-row input[type="date"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    color-scheme: dark;
+  }
+
+  .add-day-row input[type="date"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .crossword-btn-secondary {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    padding: 8px 16px;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .crossword-btn-secondary:hover {
+    color: var(--text);
+    border-color: var(--text-dim);
+  }
+
+  .crossword-btn-danger,
+  .crossword-btn-danger:hover {
+    color: var(--error-text);
+    border-color: var(--error-border);
+  }
+
+  #crossword-editor {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 14px;
+  }
+
+  #crossword-editor h3 {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  #crossword-editor .crossword-form input[type="text"] {
+    background: var(--bg-card);
+  }
+
+  .solves-list {
+    list-style: none;
+    margin-top: 14px;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  .solve-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 12px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .solve-row:hover,
+  .solve-row:focus-visible {
+    background: var(--accent-dim);
+  }
+
+  .solve-row:focus-visible {
+    outline: 1px solid var(--accent);
+  }
+
+  .solve-row .solve-date {
+    flex: 1;
+  }
+
+  .solve-row .solve-dnf {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+  }
+
+  .solve-row .solve-time {
+    font-family: var(--font-display);
+    color: var(--accent);
+  }
+
   /* ── UTILITIES ── */
   .hidden { display: none !important; }
 
@@ -749,6 +864,34 @@
         </div>
         <p id="history-empty" class="crossword-empty hidden" style="margin-top:14px;">No completed solves yet — log a few times and your charts will appear here. 📈</p>
         <p id="crossword-history-error" class="form-msg error"></p>
+      </div>
+
+      <div class="crossword-card">
+        <h2>My Solves</h2>
+        <div class="add-day-row">
+          <label for="crossword-add-date">Missed a day?</label>
+          <input type="date" id="crossword-add-date" aria-label="Date to add or edit">
+          <button type="button" class="crossword-btn-secondary" id="crossword-add-btn">Add / edit</button>
+        </div>
+        <p id="crossword-solves-msg" class="form-msg"></p>
+
+        <div id="crossword-editor" class="hidden">
+          <h3 id="crossword-editor-title"></h3>
+          <form class="crossword-form" onsubmit="saveEditedScore(event)">
+            <input type="text" id="crossword-edit-time" placeholder="M:SS" inputmode="numeric" maxlength="5" autocomplete="off" aria-label="Time in minutes and seconds">
+            <label class="crossword-check">
+              <input type="checkbox" id="crossword-edit-completed" checked>
+              I finished it
+            </label>
+            <button type="submit" class="crossword-submit" id="crossword-edit-save">Save</button>
+            <button type="button" class="crossword-btn-secondary crossword-btn-danger hidden" id="crossword-edit-delete" onclick="deleteEditedScore()">Delete</button>
+            <button type="button" class="crossword-btn-secondary" onclick="closeScoreEditor()">Cancel</button>
+          </form>
+          <p id="crossword-edit-msg" class="form-msg"></p>
+        </div>
+
+        <ul id="crossword-solves-list" class="solves-list"></ul>
+        <p id="crossword-solves-empty" class="crossword-empty hidden">No solves logged yet — tap "Add / edit" to back-fill a day.</p>
       </div>
 
       <div id="history-charts" class="hidden">
@@ -961,14 +1104,24 @@
     return `${digits.slice(0, -2)}:${digits.slice(-2)}`;
   }
 
-  const crosswordTimeInput = document.getElementById('crossword-time');
-  crosswordTimeInput.addEventListener('input', () => {
-    crosswordTimeInput.value = maskClockInput(crosswordTimeInput.value);
-  });
-  crosswordTimeInput.addEventListener('blur', () => {
-    const secs = parseClockToSeconds(crosswordTimeInput.value);
-    if (secs !== null) crosswordTimeInput.value = formatSecondsToClock(secs);
-  });
+  // Mask-as-you-type + normalise-on-blur wiring, shared by every clock field
+  function wireClockInput(input) {
+    input.addEventListener('input', () => {
+      input.value = maskClockInput(input.value);
+    });
+    input.addEventListener('blur', () => {
+      const secs = parseClockToSeconds(input.value);
+      if (secs !== null) input.value = formatSecondsToClock(secs);
+    });
+  }
+  wireClockInput(document.getElementById('crossword-time'));
+  wireClockInput(document.getElementById('crossword-edit-time'));
+
+  // "Tue 14 Jul 2026" from "YYYY-MM-DD" (parsed as local midnight, not UTC)
+  function friendlyDate(dateStr) {
+    return new Date(`${dateStr}T00:00:00`).toLocaleDateString('en-GB',
+      { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  }
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -989,6 +1142,11 @@
     document.getElementById('crossword-date').textContent =
       new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     crosswordMsg('crossword-form-msg', '', 'success');
+    // Re-bounded on every open so a page left overnight still allows the new day
+    const addDate = document.getElementById('crossword-add-date');
+    addDate.max = localDateStr();
+    addDate.min = ADD_DAY_MIN;
+    closeScoreEditor();
     historyStale = true;
     switchCrosswordTab('today');
     prefillTodayEntry();
@@ -1011,6 +1169,10 @@
       if (isEdit) {
         document.getElementById('crossword-time').value = formatSecondsToClock(doc.data().timeSeconds);
         document.getElementById('crossword-completed').checked = doc.data().completed;
+      } else {
+        // e.g. today's entry was just deleted from My Solves — don't show stale values
+        document.getElementById('crossword-time').value = '';
+        document.getElementById('crossword-completed').checked = true;
       }
       document.getElementById('crossword-form-title').textContent = isEdit ? "Edit today's time" : "Log today's time";
       document.getElementById('crossword-submit').textContent = isEdit ? 'Update' : 'Submit';
@@ -1019,47 +1181,56 @@
     }
   }
 
+  function clockErrorMsg(rawTime) {
+    return /^\d{0,3}:?[6-9]\d$/.test(rawTime)
+      ? 'Seconds must be under 60 — e.g. type 145 for 1:45.'
+      : 'Please enter your time as M:SS (e.g. 1:02).';
+  }
+
+  // Create-or-edit write for any date's entry. Read first: only set createdAt
+  // on first write, so edits never reset it. Returns 'created' or 'updated'.
+  async function saveScoreFor(date, timeSeconds, completed) {
+    const user = auth.currentUser;
+    if (!user) throw new Error('Not signed in');
+    const ref = db.collection(SCORES).doc(`${date}_${user.uid}`);
+    const existing = await ref.get();
+    if (existing.exists) {
+      await ref.update({
+        timeSeconds,
+        completed,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      await ref.set({
+        uid: user.uid,
+        displayName: user.displayName || user.email,
+        date,
+        timeSeconds,
+        completed,
+        puzzle: 'daily',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    return existing.exists ? 'updated' : 'created';
+  }
+
   async function submitScore(event) {
     event.preventDefault();
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!auth.currentUser) return;
 
     const rawTime = document.getElementById('crossword-time').value.trim();
     const timeSeconds = parseClockToSeconds(rawTime);
     if (timeSeconds === null || timeSeconds === 0 || timeSeconds > 86400) {
-      const msg = /^\d{0,3}:?[6-9]\d$/.test(rawTime)
-        ? 'Seconds must be under 60 — e.g. type 145 for 1:45.'
-        : 'Please enter your time as M:SS (e.g. 1:02).';
-      crosswordMsg('crossword-form-msg', msg, 'error');
+      crosswordMsg('crossword-form-msg', clockErrorMsg(rawTime), 'error');
       return;
     }
     const completed = document.getElementById('crossword-completed').checked;
-    const date = localDateStr();
-    const ref = db.collection(SCORES).doc(`${date}_${user.uid}`);
 
     try {
-      // Read first: only set createdAt on first write, so edits never reset it
-      const existing = await ref.get();
-      if (existing.exists) {
-        await ref.update({
-          timeSeconds,
-          completed,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      } else {
-        await ref.set({
-          uid: user.uid,
-          displayName: user.displayName || user.email,
-          date,
-          timeSeconds,
-          completed,
-          puzzle: 'daily',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
-      crosswordMsg('crossword-form-msg', existing.exists ? 'Updated! ✓' : 'Logged! ✓', 'success');
-      historyStale = true; // charts refetch next time the My History tab is opened
+      const outcome = await saveScoreFor(localDateStr(), timeSeconds, completed);
+      crosswordMsg('crossword-form-msg', outcome === 'updated' ? 'Updated! ✓' : 'Logged! ✓', 'success');
+      historyStale = true; // history list/tiles/charts refetch next time the tab is opened
       prefillTodayEntry();
       renderLeaderboard();
       renderMyStats();
@@ -1203,25 +1374,29 @@
     if (!user) return;
     crosswordMsg('crossword-history-error', '', 'error');
 
-    if (typeof Plotly === 'undefined') {
-      crosswordMsg('crossword-history-error', 'Charts couldn\'t load — check your connection and reload the page.', 'error');
-      return; // historyStale stays true, so reopening the tab retries
-    }
-
     try {
       // Single-field equality query (pattern-B convention); sort/derive in JS
       const snap = await db.collection(SCORES).where('uid', '==', user.uid).get();
-      const points = snap.docs.map(d => d.data())
-        .filter(r => r.completed === true && typeof r.timeSeconds === 'number')
-        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-        .map(r => ({ date: r.date, timeSeconds: r.timeSeconds }));
+      const all = snap.docs.map(d => d.data())
+        .filter(r => typeof r.timeSeconds === 'number' && typeof r.date === 'string')
+        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
-      historyStale = false;
+      myHistoryRows = all.slice().reverse(); // newest first for the tappable list
+      renderSolvesList();
+
+      const points = all.filter(r => r.completed === true)
+        .map(r => ({ date: r.date, timeSeconds: r.timeSeconds }));
       renderHistoryStats(points);
 
       const hasData = points.length > 0;
       document.getElementById('history-charts').classList.toggle('hidden', !hasData);
       document.getElementById('history-empty').classList.toggle('hidden', hasData);
+
+      if (typeof Plotly === 'undefined') {
+        crosswordMsg('crossword-history-error', 'Charts couldn\'t load — check your connection and reload the page.', 'error');
+        return; // historyStale stays true, so reopening the tab retries the charts
+      }
+      historyStale = false;
       if (!hasData) return;
 
       renderDistributionChart(points);
@@ -1229,6 +1404,129 @@
     } catch (err) {
       console.error('Error loading history:', err);
       crosswordMsg('crossword-history-error', 'Couldn\'t load your history.', 'error');
+    }
+  }
+
+  // ── My Solves: tappable list + amend/back-date editor ──
+  // Docs are keyed {date}_{uid} and rules allow writing any own-uid entry, so
+  // "amend a past day" is just saveScoreFor() with a non-today date.
+  const ADD_DAY_MIN = '2025-12-01'; // just before the earliest tracked solve (seed starts 2025-12-17)
+  let myHistoryRows = []; // newest first; refreshed by renderMyHistory()
+  let editingDate = null;
+
+  function renderSolvesList() {
+    const list = document.getElementById('crossword-solves-list');
+    list.innerHTML = myHistoryRows.map(r => `
+      <li>
+        <button type="button" class="solve-row" data-date="${escapeHtml(r.date)}">
+          <span class="solve-date">${friendlyDate(r.date)}</span>
+          ${r.completed === true ? '' : '<span class="solve-dnf">not finished</span>'}
+          <span class="solve-time">${formatSecondsToClock(r.timeSeconds)}</span>
+        </button>
+      </li>`).join('');
+    document.getElementById('crossword-solves-empty')
+      .classList.toggle('hidden', myHistoryRows.length > 0);
+  }
+
+  document.getElementById('crossword-solves-list').addEventListener('click', e => {
+    const row = e.target.closest('.solve-row');
+    if (row) openScoreEditor(row.dataset.date);
+  });
+
+  document.getElementById('crossword-add-btn').addEventListener('click', () => {
+    const date = document.getElementById('crossword-add-date').value;
+    if (!date) {
+      crosswordMsg('crossword-solves-msg', 'Pick a date first.', 'error');
+      return;
+    }
+    openScoreEditor(date);
+  });
+
+  function openScoreEditor(date) {
+    if (date > localDateStr()) { // input max should prevent this, but belt & braces
+      crosswordMsg('crossword-solves-msg', 'You can\'t log a day that hasn\'t happened yet.', 'error');
+      return;
+    }
+    crosswordMsg('crossword-solves-msg', '', 'error');
+    crosswordMsg('crossword-edit-msg', '', 'error');
+    editingDate = date;
+
+    const existing = myHistoryRows.find(r => r.date === date) || null;
+    document.getElementById('crossword-editor-title').textContent =
+      `${existing ? 'Edit' : 'Add'} ${friendlyDate(date)}`;
+    document.getElementById('crossword-edit-time').value =
+      existing ? formatSecondsToClock(existing.timeSeconds) : '';
+    document.getElementById('crossword-edit-completed').checked =
+      existing ? existing.completed === true : true;
+    document.getElementById('crossword-edit-delete').classList.toggle('hidden', !existing);
+
+    const editor = document.getElementById('crossword-editor');
+    editor.classList.remove('hidden');
+    editor.scrollIntoView({ block: 'nearest' });
+    document.getElementById('crossword-edit-time').focus();
+  }
+
+  function closeScoreEditor() {
+    editingDate = null;
+    document.getElementById('crossword-editor').classList.add('hidden');
+  }
+
+  // The list/tiles/charts are visible while editing, so refetch immediately;
+  // a today amend also touches the Today pane's leaderboard, stats and prefill.
+  function refreshAfterAmend(date) {
+    renderMyHistory();
+    if (date === localDateStr()) {
+      prefillTodayEntry();
+      renderLeaderboard();
+      renderMyStats();
+    }
+  }
+
+  async function saveEditedScore(event) {
+    event.preventDefault();
+    const date = editingDate;
+    if (!date || !auth.currentUser) return;
+    if (date > localDateStr()) {
+      crosswordMsg('crossword-edit-msg', 'You can\'t log a day that hasn\'t happened yet.', 'error');
+      return;
+    }
+
+    const rawTime = document.getElementById('crossword-edit-time').value.trim();
+    const timeSeconds = parseClockToSeconds(rawTime);
+    if (timeSeconds === null || timeSeconds === 0 || timeSeconds > 86400) {
+      crosswordMsg('crossword-edit-msg', clockErrorMsg(rawTime), 'error');
+      return;
+    }
+    const completed = document.getElementById('crossword-edit-completed').checked;
+
+    try {
+      const outcome = await saveScoreFor(date, timeSeconds, completed);
+      historyStale = true;
+      closeScoreEditor();
+      crosswordMsg('crossword-solves-msg',
+        `${friendlyDate(date)} ${outcome === 'updated' ? 'updated' : 'added'} ✓`, 'success');
+      refreshAfterAmend(date);
+    } catch (err) {
+      console.error('Error saving amended score:', err);
+      crosswordMsg('crossword-edit-msg', 'Couldn\'t save. Please try again.', 'error');
+    }
+  }
+
+  async function deleteEditedScore() {
+    const date = editingDate;
+    const user = auth.currentUser;
+    if (!date || !user) return;
+    if (!window.confirm(`Delete your entry for ${friendlyDate(date)}?`)) return;
+
+    try {
+      await db.collection(SCORES).doc(`${date}_${user.uid}`).delete();
+      historyStale = true;
+      closeScoreEditor();
+      crosswordMsg('crossword-solves-msg', `${friendlyDate(date)} deleted ✓`, 'success');
+      refreshAfterAmend(date);
+    } catch (err) {
+      console.error('Error deleting entry:', err);
+      crosswordMsg('crossword-edit-msg', 'Couldn\'t delete. Please try again.', 'error');
     }
   }
 

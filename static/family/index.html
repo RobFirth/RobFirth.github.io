@@ -687,7 +687,7 @@
     <div class="crossword-card">
       <h2 id="crossword-form-title">Log today's time</h2>
       <form class="crossword-form" onsubmit="submitScore(event)">
-        <input type="text" id="crossword-time" placeholder="mm:ss" inputmode="numeric" autocomplete="off" aria-label="Time in minutes and seconds">
+        <input type="text" id="crossword-time" placeholder="M:SS" inputmode="numeric" maxlength="5" autocomplete="off" aria-label="Time in minutes and seconds">
         <label class="crossword-check">
           <input type="checkbox" id="crossword-completed" checked>
           I finished it
@@ -927,21 +927,48 @@
     return `${y}-${m}-${day}`;
   }
 
-  // "12:34" → 754 seconds; also accepts bare minutes ("12"). Returns null if invalid.
-  function parseTimeToSeconds(str) {
-    const t = str.trim();
-    let m = t.match(/^(\d{1,3}):([0-5]?\d)$/);
-    if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
-    m = t.match(/^(\d{1,3})$/);
-    if (m) return parseInt(m[1], 10) * 60;
-    return null;
+  // Accepts "1:02" or masked digits "102" — rightmost two digits are seconds,
+  // the rest minutes. Returns integer seconds, or null if invalid (empty,
+  // seconds ≥ 60, or non-parseable).
+  function parseClockToSeconds(value) {
+    const t = String(value ?? '').trim();
+    let mins, secs;
+    let m = t.match(/^(\d{1,3}):(\d{1,2})$/);
+    if (m) {
+      mins = parseInt(m[1], 10);
+      secs = parseInt(m[2], 10);
+    } else if (/^\d{1,5}$/.test(t)) {
+      mins = t.length > 2 ? parseInt(t.slice(0, -2), 10) : 0;
+      secs = parseInt(t.slice(-2), 10);
+    } else {
+      return null;
+    }
+    if (secs >= 60) return null;
+    return mins * 60 + secs;
   }
 
-  function formatSeconds(s) {
+  function formatSecondsToClock(s) {
     const mins = Math.floor(s / 60);
     const secs = Math.round(s % 60);
     return `${mins}:${String(secs).padStart(2, '0')}`;
   }
+
+  // Digits-only mask for the numeric keypad: the user never types the colon.
+  // "1" → "1", "10" → "10", "102" → "1:02", "1234" → "12:34".
+  function maskClockInput(rawValue) {
+    const digits = String(rawValue ?? '').replace(/\D/g, '').slice(0, 4);
+    if (digits.length < 3) return digits;
+    return `${digits.slice(0, -2)}:${digits.slice(-2)}`;
+  }
+
+  const crosswordTimeInput = document.getElementById('crossword-time');
+  crosswordTimeInput.addEventListener('input', () => {
+    crosswordTimeInput.value = maskClockInput(crosswordTimeInput.value);
+  });
+  crosswordTimeInput.addEventListener('blur', () => {
+    const secs = parseClockToSeconds(crosswordTimeInput.value);
+    if (secs !== null) crosswordTimeInput.value = formatSecondsToClock(secs);
+  });
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -982,7 +1009,7 @@
       const doc = await db.collection(SCORES).doc(`${localDateStr()}_${user.uid}`).get();
       const isEdit = doc.exists;
       if (isEdit) {
-        document.getElementById('crossword-time').value = formatSeconds(doc.data().timeSeconds);
+        document.getElementById('crossword-time').value = formatSecondsToClock(doc.data().timeSeconds);
         document.getElementById('crossword-completed').checked = doc.data().completed;
       }
       document.getElementById('crossword-form-title').textContent = isEdit ? "Edit today's time" : "Log today's time";
@@ -997,9 +1024,13 @@
     const user = auth.currentUser;
     if (!user) return;
 
-    const timeSeconds = parseTimeToSeconds(document.getElementById('crossword-time').value);
-    if (timeSeconds === null || timeSeconds > 86400) {
-      crosswordMsg('crossword-form-msg', 'Please enter your time as mm:ss (e.g. 12:34).', 'error');
+    const rawTime = document.getElementById('crossword-time').value.trim();
+    const timeSeconds = parseClockToSeconds(rawTime);
+    if (timeSeconds === null || timeSeconds === 0 || timeSeconds > 86400) {
+      const msg = /^\d{0,3}:?[6-9]\d$/.test(rawTime)
+        ? 'Seconds must be under 60 — e.g. type 145 for 1:45.'
+        : 'Please enter your time as M:SS (e.g. 1:02).';
+      crosswordMsg('crossword-form-msg', msg, 'error');
       return;
     }
     const completed = document.getElementById('crossword-completed').checked;
@@ -1056,7 +1087,7 @@
         <li class="${r.uid === user.uid ? 'me' : ''}">
           <span class="rank">${i + 1}</span>
           <span class="lb-name">${escapeHtml(r.displayName)}${r.uid === user.uid ? ' (you)' : ''}</span>
-          <span class="lb-time">${formatSeconds(r.timeSeconds)}</span>
+          <span class="lb-time">${formatSecondsToClock(r.timeSeconds)}</span>
         </li>`).join('');
       empty.classList.toggle('hidden', rows.length > 0);
     } catch (err) {
@@ -1088,7 +1119,7 @@
       }
 
       const best = completedRows.length
-        ? formatSeconds(Math.min(...completedRows.map(r => r.timeSeconds)))
+        ? formatSecondsToClock(Math.min(...completedRows.map(r => r.timeSeconds)))
         : '–';
 
       document.getElementById('stat-streak').textContent = streak;
@@ -1210,9 +1241,9 @@
     const recent = points.filter(p => p.date >= localDateStr(cutoff)).map(p => p.timeSeconds);
 
     document.getElementById('hist-total').textContent = points.length;
-    document.getElementById('hist-best').textContent = times.length ? formatSeconds(Math.min(...times)) : '–';
-    document.getElementById('hist-avg').textContent = times.length ? formatSeconds(mean(times)) : '–';
-    document.getElementById('hist-recent').textContent = recent.length ? formatSeconds(mean(recent)) : '–';
+    document.getElementById('hist-best').textContent = times.length ? formatSecondsToClock(Math.min(...times)) : '–';
+    document.getElementById('hist-avg').textContent = times.length ? formatSecondsToClock(mean(times)) : '–';
+    document.getElementById('hist-recent').textContent = recent.length ? formatSecondsToClock(mean(recent)) : '–';
   }
 
   function renderDistributionChart(points) {

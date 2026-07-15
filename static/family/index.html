@@ -678,6 +678,26 @@
     color: var(--accent);
   }
 
+  .solve-row.solve-missing .solve-date {
+    color: var(--text-dim);
+  }
+
+  .solve-row .solve-add {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+
+  .solve-row.solve-missing:hover .solve-add,
+  .solve-row.solve-missing:focus-visible .solve-add {
+    color: var(--accent);
+  }
+
+  .solve-row.solve-gap .solve-date {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+  }
+
   /* ── UTILITIES ── */
   .hidden { display: none !important; }
 
@@ -1378,7 +1398,7 @@
       // Single-field equality query (pattern-B convention); sort/derive in JS
       const snap = await db.collection(SCORES).where('uid', '==', user.uid).get();
       const all = snap.docs.map(d => d.data())
-        .filter(r => typeof r.timeSeconds === 'number' && typeof r.date === 'string')
+        .filter(r => typeof r.timeSeconds === 'number' && /^\d{4}-\d{2}-\d{2}$/.test(r.date))
         .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
       myHistoryRows = all.slice().reverse(); // newest first for the tappable list
@@ -1414,23 +1434,88 @@
   let myHistoryRows = []; // newest first; refreshed by renderMyHistory()
   let editingDate = null;
 
+  // Which collapsed "n missed days" runs the user has expanded (keyed by the
+  // run's newest date). Survives re-renders; stale keys after a run splits are harmless.
+  const expandedGaps = new Set();
+
+  // Pure: walk day-by-day from today down to the oldest entry and interleave
+  // missing days between the logged ones. Runs of missing days longer than
+  // the collapse limit become a single expandable item. rows is newest-first.
+  function buildSolvesDisplay(rows, todayStr, expanded) {
+    const COLLAPSE_OVER = 3; // runs longer than this collapse to one "n missed days" row
+    const items = [];
+    if (!rows.length) return items;
+    const byDate = new Map(rows.map(r => [r.date, r]));
+    const oldest = rows[rows.length - 1].date;
+
+    let run = [];
+    const flushRun = () => {
+      if (!run.length) return;
+      if (run.length > COLLAPSE_OVER && !expanded.has(run[0])) {
+        items.push({ type: 'gap', key: run[0], count: run.length });
+      } else {
+        if (run.length > COLLAPSE_OVER) items.push({ type: 'gap-open', key: run[0], count: run.length });
+        run.forEach(d => items.push({ type: 'missing', date: d }));
+      }
+      run = [];
+    };
+
+    const cursor = new Date(`${todayStr}T00:00:00`);
+    for (let d = todayStr; d >= oldest; cursor.setDate(cursor.getDate() - 1), d = localDateStr(cursor)) {
+      const row = byDate.get(d);
+      if (row) { flushRun(); items.push({ type: 'entry', row }); }
+      else run.push(d);
+    }
+    flushRun();
+    return items;
+  }
+
   function renderSolvesList() {
     const list = document.getElementById('crossword-solves-list');
-    list.innerHTML = myHistoryRows.map(r => `
+    const items = buildSolvesDisplay(myHistoryRows, localDateStr(), expandedGaps);
+    list.innerHTML = items.map(item => {
+      if (item.type === 'entry') {
+        const r = item.row;
+        return `
       <li>
         <button type="button" class="solve-row" data-date="${escapeHtml(r.date)}">
           <span class="solve-date">${friendlyDate(r.date)}</span>
           ${r.completed === true ? '' : '<span class="solve-dnf">not finished</span>'}
           <span class="solve-time">${formatSecondsToClock(r.timeSeconds)}</span>
         </button>
-      </li>`).join('');
+      </li>`;
+      }
+      if (item.type === 'missing') {
+        return `
+      <li>
+        <button type="button" class="solve-row solve-missing" data-date="${item.date}">
+          <span class="solve-date">${friendlyDate(item.date)}</span>
+          <span class="solve-add">+ add</span>
+        </button>
+      </li>`;
+      }
+      // gap / gap-open: collapsed-run toggle
+      return `
+      <li>
+        <button type="button" class="solve-row solve-gap" data-gap="${item.key}"
+                aria-expanded="${item.type === 'gap-open'}">
+          <span class="solve-date">${item.type === 'gap-open' ? '▾' : '▸'} ${item.count} missed days</span>
+        </button>
+      </li>`;
+    }).join('');
     document.getElementById('crossword-solves-empty')
       .classList.toggle('hidden', myHistoryRows.length > 0);
   }
 
   document.getElementById('crossword-solves-list').addEventListener('click', e => {
     const row = e.target.closest('.solve-row');
-    if (row) openScoreEditor(row.dataset.date);
+    if (!row) return;
+    if (row.dataset.gap) {
+      if (!expandedGaps.delete(row.dataset.gap)) expandedGaps.add(row.dataset.gap);
+      renderSolvesList();
+    } else {
+      openScoreEditor(row.dataset.date);
+    }
   });
 
   document.getElementById('crossword-add-btn').addEventListener('click', () => {

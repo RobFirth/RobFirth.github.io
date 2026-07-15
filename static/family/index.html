@@ -1661,6 +1661,12 @@
 
     Plotly.react('chart-trend', [
       {
+        x: dates, y: times,
+        name: 'Solve time', mode: 'markers',
+        marker: { size: 4, color: t.line1, opacity: 0.4 },
+        hovertemplate: '%{y:.0f}s<extra>Solve time</extra>'
+      },
+      {
         x: dates, y: runningAverage(times),
         name: 'Running average', mode: sparse ? 'lines+markers' : 'lines',
         line: { color: t.line1, width: 2 }, marker: { size: 6 },

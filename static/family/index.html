@@ -1639,7 +1639,7 @@
     Plotly.react('chart-distribution', [{
       type: 'histogram',
       x: points.map(p => p.timeSeconds),
-      xbins: { size: 10 },
+      xbins: { size: 5 },
       marker: { color: t.line1, line: { color: t.card, width: 1 } },
       hovertemplate: '%{x}s: %{y} solve(s)<extra></extra>'
     }], layout, CHART_CONFIG);

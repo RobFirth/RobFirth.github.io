@@ -1222,9 +1222,12 @@
     return mins * 60 + secs;
   }
 
+  // Round the total, not the seconds part: rounding `s % 60` on a fractional
+  // input could carry to 60 and render "1:60" (e.g. a 119.6s average).
   function formatSecondsToClock(s) {
-    const mins = Math.floor(s / 60);
-    const secs = Math.round(s % 60);
+    const total = Math.round(s);
+    const mins = Math.floor(total / 60);
+    const secs = total % 60;
     return `${mins}:${String(secs).padStart(2, '0')}`;
   }
 
@@ -2015,7 +2018,7 @@
           <td class="setter-name">${escapeHtml(s.label)}</td>
           <td>${s.count}</td>
           <td>${formatSecondsToClock(s.best)}</td>
-          <td>${formatSecondsToClock(Math.round(s.avg))}</td>
+          <td>${formatSecondsToClock(s.avg)}</td>
           <td class="${cls}">${sign}${Math.abs(delta)}s</td>
         </tr>`;
     }).join('');

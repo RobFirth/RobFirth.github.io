@@ -1359,6 +1359,34 @@
     return n >= 1 && n <= 100000 ? n : null; // matches the rules' bounds
   }
 
+  // ── Deriving the crossword number from the date ──
+  // #1 was 2025-12-17, and the numbering advances only on days a puzzle was
+  // actually published — so days marked "no puzzle" are skipped, not counted.
+  // Confirmed against the full history on 2026-10-16: 2025-12-17 → 2026-10-16
+  // is 304 calendar days with one no-puzzle day (Christmas), giving #303 today.
+  const PUZZLE_EPOCH = '2025-12-17';
+
+  // Whole days between two YYYY-MM-DD strings. Both parsed as *local* midnight
+  // (the friendlyDate convention); rounding absorbs the 23/25-hour DST days.
+  function daysBetween(fromStr, toStr) {
+    const from = new Date(`${fromStr}T00:00:00`);
+    const to   = new Date(`${toStr}T00:00:00`);
+    return Math.round((to - from) / 86400000);
+  }
+
+  // The number printed on the puzzle for `dateStr`, or null when there isn't
+  // one: before #1, or a day with no puzzle. `noPuzzleDates` is a Set of
+  // YYYY-MM-DD — every marked day shifts the count down by one from then on,
+  // which is what makes this self-correcting when a skipped day is marked.
+  function crosswordNumberFor(dateStr, noPuzzleDates) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr))) return null;
+    if (dateStr < PUZZLE_EPOCH) return null;
+    if (noPuzzleDates.has(dateStr)) return null;
+    let skipped = 0;
+    noPuzzleDates.forEach(d => { if (d >= PUZZLE_EPOCH && d < dateStr) skipped++; });
+    return daysBetween(PUZZLE_EPOCH, dateStr) + 1 - skipped;
+  }
+
   // "Brassica · #304", either half alone, or '' when the entry has neither
   function puzzleMetaLabel(row) {
     const parts = [];
@@ -1386,6 +1414,11 @@
       document.getElementById(id).disabled = off;
     });
     if (off && which === 'today') clearMetaHints();
+    // Un-ticking means the day had a puzzle after all, so it has a number again
+    if (!off) {
+      const date = which === 'today' ? localDateStr() : editingDate;
+      if (date) suggestPuzzleNumberFromDate(which, date);
+    }
   }
 
   Object.keys(META_FORMS).forEach(which => {
@@ -1403,9 +1436,14 @@
     setMetaHint('crossword-number-hint', '');
   }
 
-  // Once the user types, the value is theirs — the suggestion label is stale
-  ['crossword-setter', 'crossword-number'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => setMetaHint(`${id}-hint`, ''));
+  // Once the user types, the value is theirs — the suggestion label is stale,
+  // and the number is no longer a derivation that may be overwritten.
+  ['crossword-setter', 'crossword-number', 'crossword-edit-number'].forEach(id => {
+    document.getElementById(id).addEventListener('input', e => {
+      delete e.target.dataset.derived;
+      const hint = document.getElementById(`${id}-hint`);
+      if (hint) setMetaHint(`${id}-hint`, '');
+    });
   });
 
   // Reads the optional fields off a form. Returns { setter, number } with
@@ -1483,14 +1521,19 @@
       document.getElementById('crossword-completed').checked = data ? data.completed === true : true;
       document.getElementById('crossword-setter').value =
         data && typeof data.setter === 'string' ? data.setter : '';
-      document.getElementById('crossword-number').value =
+      const numberInput = document.getElementById('crossword-number');
+      numberInput.value =
         data && typeof data.number === 'number' ? String(data.number) : '';
+      delete numberInput.dataset.derived; // a stored number is the user's, not inferred
       document.getElementById('crossword-nopuzzle').checked = marker;
       clearMetaHints();
       syncNoPuzzleUi('today');
       document.getElementById('crossword-form-title').textContent = isEdit ? "Edit today's time" : "Log today's time";
       document.getElementById('crossword-submit').textContent = isEdit ? 'Update' : 'Submit';
       suggestPuzzleMeta(); // no-op unless the setter/number inputs are still empty
+      // Also a no-op unless the number box is still empty. myNoPuzzleDates may
+      // not have landed yet on first open — renderMyStats() calls this again.
+      suggestPuzzleNumberFromDate('today', localDateStr());
     } catch (err) {
       console.error('Error loading today\'s entry:', err);
     }
@@ -1631,10 +1674,13 @@
 
     const fill = (inputId, hintId, has, read) => {
       const input = document.getElementById(inputId);
-      if (input.value.trim()) return;
+      // A date-derived number is inference; another member's entry is evidence,
+      // so it may overwrite one. Anything typed is left alone.
+      if (input.value.trim() && input.dataset.derived !== '1') return;
       const source = others.find(has);
       if (!source) return;
       input.value = read(source);
+      delete input.dataset.derived;
       const who = String(source.displayName || '').trim().split(' ')[0];
       setMetaHint(hintId, who ? `from ${who}'s entry` : 'from another entry');
     };
@@ -1645,6 +1691,32 @@
     fill('crossword-number', 'crossword-number-hint',
       r => typeof r.number === 'number',
       r => String(r.number));
+  }
+
+  // Days the user has marked "no puzzle". Stashed by renderMyStats() and
+  // renderMyHistory() — both already fetch every own row — so the Today form
+  // can derive a number before the History tab has ever been opened.
+  let myNoPuzzleDates = new Set();
+
+  function refreshNoPuzzleDates(rows) {
+    myNoPuzzleDates = new Set(rows.filter(r => r.noPuzzle === true).map(r => r.date));
+  }
+
+  // The number is printed on the puzzle, but it's also derivable from the date,
+  // so the box can fill itself. Fills only an *empty* input — or one this
+  // function filled earlier — which keeps it idempotent across the concurrent
+  // openCrossword() paths, and lets a typed value or another member's real
+  // entry win: their number is evidence, this is only inference.
+  function suggestPuzzleNumberFromDate(which, dateStr) {
+    const f = META_FORMS[which];
+    if (document.getElementById(f.noPuzzle).checked) return;
+    const input = document.getElementById(f.number);
+    if (input.value.trim() && input.dataset.derived !== '1') return;
+    const n = crosswordNumberFor(dateStr, myNoPuzzleDates);
+    if (n === null) return;
+    input.value = String(n);
+    input.dataset.derived = '1';
+    if (which === 'today') setMetaHint('crossword-number-hint', 'from the date');
   }
 
   async function renderLeaderboard() {
@@ -1708,6 +1780,9 @@
       const rows = snap.docs.map(d => d.data());
       const completedRows = rows.filter(r => r.completed === true);
       refreshKnownSetters(rows);
+      refreshNoPuzzleDates(rows);
+      // The rows the date-derived number needs have only just landed
+      suggestPuzzleNumberFromDate('today', localDateStr());
 
       const streak = currentStreak(
         new Set(completedRows.map(r => r.date)),
@@ -1810,6 +1885,7 @@
       myHistoryRows = all.slice().reverse(); // newest first for the tappable list
       renderSolvesList();
       refreshKnownSetters(all); // keeps the datalist fresh after a back-filled setter
+      refreshNoPuzzleDates(all); // a newly marked day reshuffles every later number
 
       // completed-only, so no-puzzle markers never reach a timing statistic
       const points = all.filter(r => r.completed === true)
@@ -1968,10 +2044,13 @@
       existing ? existing.completed === true : true;
     document.getElementById('crossword-edit-setter').value =
       existing && typeof existing.setter === 'string' ? existing.setter : '';
-    document.getElementById('crossword-edit-number').value =
+    const editNumber = document.getElementById('crossword-edit-number');
+    editNumber.value =
       existing && typeof existing.number === 'number' ? String(existing.number) : '';
+    delete editNumber.dataset.derived; // a stored number is the user's, not inferred
     document.getElementById('crossword-edit-nopuzzle').checked = marker;
     syncNoPuzzleUi('edit');
+    suggestPuzzleNumberFromDate('edit', date); // no-op if the day stored one
     document.getElementById('crossword-edit-delete').classList.toggle('hidden', !existing);
 
     const editor = document.getElementById('crossword-editor');

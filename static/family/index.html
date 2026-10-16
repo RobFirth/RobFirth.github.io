@@ -782,6 +782,13 @@
     font-size: 0.78rem;
   }
 
+  /* A number the user recorded is weighted; one worked out from the date is
+     left plain, so the list never shows an inference as if it were a record.
+     600 not 700 — Outfit is loaded at 300/400/500/600, and 700 would be a
+     browser-synthesised faux bold. */
+  .solve-row .solve-num-entered { font-weight: 600; color: var(--text); }
+  .solve-row .solve-num-derived { font-weight: 400; }
+
   /* ── BY SETTER ── */
   .setter-table-wrap { overflow-x: auto; }
 
@@ -1387,13 +1394,19 @@
     return daysBetween(PUZZLE_EPOCH, dateStr) + 1 - skipped;
   }
 
-  // "Brassica · #304", either half alone, or '' when the entry has neither
-  function puzzleMetaLabel(row) {
-    const parts = [];
-    const setter = typeof row.setter === 'string' ? row.setter.trim() : '';
-    if (setter) parts.push(setter);
-    if (typeof row.number === 'number') parts.push(`#${row.number}`);
-    return parts.join(' · ');
+  // The setter/number tag for a My Solves row. A number is shown even when the
+  // entry doesn't carry one, derived from the date — `source` records which, so
+  // the list can weight a number the user entered differently from one it
+  // inferred rather than passing the second off as the first.
+  // (Supersedes puzzleMetaLabel, which returned the two joined as one string.)
+  function solveMeta(row, derivedNumber) {
+    const stored = typeof row.number === 'number' ? row.number : null;
+    const number = stored !== null ? stored : derivedNumber;
+    return {
+      setter: typeof row.setter === 'string' ? row.setter.trim() : '',
+      number: typeof number === 'number' ? number : null,
+      source: stored !== null ? 'entered' : (typeof number === 'number' ? 'derived' : null)
+    };
   }
 
   // ── "No puzzle" days (Christmas etc.) ──
@@ -1883,9 +1896,9 @@
         .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
       myHistoryRows = all.slice().reverse(); // newest first for the tappable list
-      renderSolvesList();
-      refreshKnownSetters(all); // keeps the datalist fresh after a back-filled setter
       refreshNoPuzzleDates(all); // a newly marked day reshuffles every later number
+      renderSolvesList();        // ...so this must come after it — the list derives numbers
+      refreshKnownSetters(all); // keeps the datalist fresh after a back-filled setter
 
       // completed-only, so no-puzzle markers never reach a timing statistic
       const points = all.filter(r => r.completed === true)
@@ -1972,12 +1985,19 @@
         </button>
       </li>`;
         }
-        const meta = puzzleMetaLabel(r);
+        const m = solveMeta(r, crosswordNumberFor(r.date, myNoPuzzleDates));
+        const metaParts = [
+          m.setter ? escapeHtml(m.setter) : '',
+          m.number !== null
+            ? `<span class="solve-num solve-num-${m.source}"
+                     title="${m.source === 'entered' ? 'Number you recorded' : 'Number worked out from the date'}">#${m.number}</span>`
+            : ''
+        ].filter(Boolean);
         return `
       <li>
         <button type="button" class="solve-row" data-date="${escapeHtml(r.date)}">
           <span class="solve-date">${friendlyDate(r.date)}</span>
-          ${meta ? `<span class="solve-meta">${escapeHtml(meta)}</span>` : ''}
+          ${metaParts.length ? `<span class="solve-meta">${metaParts.join(' · ')}</span>` : ''}
           ${r.completed === true ? '' : '<span class="solve-dnf">not finished</span>'}
           <span class="solve-time">${formatSecondsToClock(r.timeSeconds)}</span>
         </button>

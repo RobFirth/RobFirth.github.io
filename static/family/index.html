@@ -357,6 +357,9 @@
 
   .app-fold .app-grid { margin-top: 16px; }
 
+  /* Filled by JS from the tile count — no stray empty pill if that never runs. */
+  .fold-count:empty { display: none; }
+
   /* ── LOADING ── */
   .loading-view {
     text-align: center;
@@ -900,7 +903,7 @@
       <summary>
         <span class="fold-chevron" aria-hidden="true">▸</span>
         To do
-        <span class="badge">3 apps</span>
+        <span class="badge fold-count"></span>
       </summary>
       <div class="app-grid">
         <a class="app-card coming-soon" href="#">
@@ -931,7 +934,7 @@
       <summary>
         <span class="fold-chevron" aria-hidden="true">▸</span>
         Archive
-        <span class="badge">1 app</span>
+        <span class="badge fold-count"></span>
       </summary>
       <div class="app-grid">
         <div class="app-card" onclick="loadPage('kneehab')" style="cursor:pointer;">
@@ -1211,6 +1214,19 @@
   function hideError() {
     errorBanner.classList.remove('visible');
   }
+
+  // ── Collapsible section badges ──
+  // Counts the tiles in each .app-fold so the badge can't go stale when one
+  // is added or moved. Runs once at parse time; the sections are static markup.
+  function renderFoldCounts() {
+    document.querySelectorAll('details.app-fold').forEach(fold => {
+      const badge = fold.querySelector('summary .fold-count');
+      if (!badge) return;
+      const n = fold.querySelectorAll('.app-grid .app-card').length;
+      badge.textContent = `${n} app${n === 1 ? '' : 's'}`;
+    });
+  }
+  renderFoldCounts();
 
   // ── User pill in nav ──
   function renderUserPill(user) {

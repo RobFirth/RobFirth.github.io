@@ -306,6 +306,57 @@
     align-self: flex-start;
   }
 
+  /* ── COLLAPSIBLE SECTIONS (To do / Archive) ── */
+  .app-fold {
+    margin-top: 28px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+
+  .app-fold + .app-fold { margin-top: 20px; }
+
+  .app-fold[open] { padding-bottom: 8px; }
+
+  .app-fold summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    list-style: none;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    transition: color 0.15s;
+  }
+
+  .app-fold summary::-webkit-details-marker { display: none; }
+
+  .app-fold summary:hover { color: var(--text-muted); }
+
+  .fold-chevron {
+    display: inline-block;
+    font-size: 0.7rem;
+    transition: transform 0.15s;
+  }
+
+  .app-fold[open] .fold-chevron { transform: rotate(90deg); }
+
+  .app-fold summary .badge {
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.05);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .app-fold .app-grid { margin-top: 16px; }
+
   /* ── LOADING ── */
   .loading-view {
     text-align: center;
@@ -837,39 +888,59 @@
     </div>
 
     <div class="app-grid">
-      <div class="app-card" onclick="loadPage('kneehab')" style="cursor:pointer;">
-        <span class="card-icon">🦵</span>
-        <h3>Knee Recovery</h3>
-        <p>MCL recovery plan &amp; exercises</p>
-      </div>
-
-      <a class="app-card coming-soon" href="#">
-        <span class="card-icon">🍳</span>
-        <h3>Recipes</h3>
-        <p>Family favourites, saved and searchable.</p>
-        <span class="badge">Coming soon</span>
-      </a>
-
       <div class="app-card" onclick="openCrossword()" style="cursor:pointer;">
         <span class="card-icon">📊</span>
         <h3>Crossword Scores</h3>
         <p>Daily crossword leaderboard.</p>
       </div>
-
-      <a class="app-card coming-soon" href="#">
-        <span class="card-icon">📸</span>
-        <h3>Photos</h3>
-        <p>Shared family photo albums.</p>
-        <span class="badge">Coming soon</span>
-      </a>
-
-      <a class="app-card coming-soon" href="#">
-        <span class="card-icon">📋</span>
-        <h3>Lists</h3>
-        <p>Shared shopping &amp; to-do lists.</p>
-        <span class="badge">Coming soon</span>
-      </a>
     </div>
+
+    <!-- TODO — not built yet, collapsed by default -->
+    <details class="app-fold">
+      <summary>
+        <span class="fold-chevron" aria-hidden="true">▸</span>
+        To do
+        <span class="badge">3 apps</span>
+      </summary>
+      <div class="app-grid">
+        <a class="app-card coming-soon" href="#">
+          <span class="card-icon">🍳</span>
+          <h3>Recipes</h3>
+          <p>Family favourites, saved and searchable.</p>
+          <span class="badge">Coming soon</span>
+        </a>
+
+        <a class="app-card coming-soon" href="#">
+          <span class="card-icon">📸</span>
+          <h3>Photos</h3>
+          <p>Shared family photo albums.</p>
+          <span class="badge">Coming soon</span>
+        </a>
+
+        <a class="app-card coming-soon" href="#">
+          <span class="card-icon">📋</span>
+          <h3>Lists</h3>
+          <p>Shared shopping &amp; to-do lists.</p>
+          <span class="badge">Coming soon</span>
+        </a>
+      </div>
+    </details>
+
+    <!-- ARCHIVE — retired apps, collapsed by default -->
+    <details class="app-fold">
+      <summary>
+        <span class="fold-chevron" aria-hidden="true">▸</span>
+        Archive
+        <span class="badge">1 app</span>
+      </summary>
+      <div class="app-grid">
+        <div class="app-card" onclick="loadPage('kneehab')" style="cursor:pointer;">
+          <span class="card-icon">🦵</span>
+          <h3>Knee Recovery</h3>
+          <p>MCL recovery plan &amp; exercises</p>
+        </div>
+      </div>
+    </details>
   </div>
 
   <!-- PAGE VIEWER -->

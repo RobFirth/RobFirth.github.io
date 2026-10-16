@@ -416,6 +416,31 @@
     border-color: var(--accent);
   }
 
+  .crossword-form input[type="text"]:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Setter reads as a name, not a clock: body font, left-aligned, wider */
+  .crossword-form input.input-setter {
+    width: 160px;
+    text-align: left;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+  }
+
+  .crossword-form input.input-number {
+    width: 72px;
+    font-size: 0.9rem;
+  }
+
+  .crossword-hint {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+
+  .crossword-hint:empty { display: none; }
+
   .crossword-check {
     display: inline-flex;
     align-items: center;
@@ -698,6 +723,56 @@
     font-size: 0.8rem;
   }
 
+  .solve-row .solve-meta {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+  }
+
+  /* ── BY SETTER ── */
+  .setter-table-wrap { overflow-x: auto; }
+
+  .setter-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .setter-table th {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    text-align: right;
+    padding: 0 0 8px 12px;
+    white-space: nowrap;
+  }
+
+  .setter-table td {
+    font-family: var(--font-display);
+    text-align: right;
+    padding: 8px 0 8px 12px;
+    border-top: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .setter-table th:first-child,
+  .setter-table td:first-child {
+    text-align: left;
+    padding-left: 0;
+  }
+
+  .setter-table td.setter-name {
+    font-family: var(--font-body);
+  }
+
+  .setter-faster { color: var(--chart-line-1); }
+  .setter-slower { color: var(--chart-line-2); }
+  .setter-even   { color: var(--text-muted); }
+
+  .setter-footnote { margin-top: 12px; }
+
   /* ── UTILITIES ── */
   .hidden { display: none !important; }
 
@@ -817,15 +892,27 @@
       <button type="button" class="crossword-tab" id="crossword-tab-history" role="tab" onclick="switchCrosswordTab('history')">My History</button>
     </div>
 
+    <!-- Shared by both setter inputs; populated from the user's own history.
+         Lives outside both panes so a hidden pane can't affect it. -->
+    <datalist id="crossword-setter-options"></datalist>
+
     <div id="crossword-pane-today">
 
     <div class="crossword-card">
       <h2 id="crossword-form-title">Log today's time</h2>
       <form class="crossword-form" onsubmit="submitScore(event)">
         <input type="text" id="crossword-time" placeholder="M:SS" inputmode="numeric" maxlength="5" autocomplete="off" aria-label="Time in minutes and seconds">
+        <input type="text" id="crossword-setter" class="input-setter" list="crossword-setter-options" placeholder="Setter (optional)" maxlength="40" autocomplete="off" aria-label="Setter">
+        <span class="crossword-hint" id="crossword-setter-hint"></span>
+        <input type="text" id="crossword-number" class="input-number" placeholder="No." inputmode="numeric" maxlength="6" autocomplete="off" aria-label="Puzzle number">
+        <span class="crossword-hint" id="crossword-number-hint"></span>
         <label class="crossword-check">
           <input type="checkbox" id="crossword-completed" checked>
           I finished it
+        </label>
+        <label class="crossword-check">
+          <input type="checkbox" id="crossword-nopuzzle">
+          No puzzle today
         </label>
         <button type="submit" class="crossword-submit" id="crossword-submit">Submit</button>
       </form>
@@ -899,9 +986,15 @@
           <h3 id="crossword-editor-title"></h3>
           <form class="crossword-form" onsubmit="saveEditedScore(event)">
             <input type="text" id="crossword-edit-time" placeholder="M:SS" inputmode="numeric" maxlength="5" autocomplete="off" aria-label="Time in minutes and seconds">
+            <input type="text" id="crossword-edit-setter" class="input-setter" list="crossword-setter-options" placeholder="Setter (optional)" maxlength="40" autocomplete="off" aria-label="Setter">
+            <input type="text" id="crossword-edit-number" class="input-number" placeholder="No." inputmode="numeric" maxlength="6" autocomplete="off" aria-label="Puzzle number">
             <label class="crossword-check">
               <input type="checkbox" id="crossword-edit-completed" checked>
               I finished it
+            </label>
+            <label class="crossword-check">
+              <input type="checkbox" id="crossword-edit-nopuzzle">
+              No puzzle
             </label>
             <button type="submit" class="crossword-submit" id="crossword-edit-save">Save</button>
             <button type="button" class="crossword-btn-secondary crossword-btn-danger hidden" id="crossword-edit-delete" onclick="deleteEditedScore()">Delete</button>
@@ -912,6 +1005,25 @@
 
         <ul id="crossword-solves-list" class="solves-list"></ul>
         <p id="crossword-solves-empty" class="crossword-empty hidden">No solves logged yet — tap "Add / edit" to back-fill a day.</p>
+      </div>
+
+      <div class="crossword-card hidden" id="crossword-setter-card">
+        <h2>By setter</h2>
+        <div class="setter-table-wrap">
+          <table class="setter-table">
+            <thead>
+              <tr>
+                <th scope="col">Setter</th>
+                <th scope="col">Solves</th>
+                <th scope="col">Best</th>
+                <th scope="col">Average</th>
+                <th scope="col">vs your average</th>
+              </tr>
+            </thead>
+            <tbody id="crossword-setter-rows"></tbody>
+          </table>
+        </div>
+        <p id="crossword-setter-footnote" class="crossword-empty setter-footnote hidden"></p>
       </div>
 
       <div id="history-charts" class="hidden">
@@ -1137,6 +1249,92 @@
   wireClockInput(document.getElementById('crossword-time'));
   wireClockInput(document.getElementById('crossword-edit-time'));
 
+  // ── Optional puzzle metadata (setter / number) ──
+  // Three-state, following the clock parser's convention: a value, `undefined`
+  // ("absent" — write nothing, no complaint), or `null` ("invalid" — message
+  // and refuse to write). Never '' / null / 0: the rules reject those.
+  function parseSetter(value) {
+    const s = String(value ?? '').trim().replace(/\s+/g, ' ');
+    if (!s) return undefined;
+    if (s.length > 40) return null;
+    return s;
+  }
+
+  // The number printed on the crossword itself, not a row index.
+  function parsePuzzleNumber(value) {
+    const t = String(value ?? '').trim();
+    if (!t) return undefined;
+    if (!/^\d{1,6}$/.test(t)) return null; // 1.5, -1, abc
+    const n = parseInt(t, 10);
+    return n >= 1 && n <= 100000 ? n : null; // matches the rules' bounds
+  }
+
+  // "Brassica · #304", either half alone, or '' when the entry has neither
+  function puzzleMetaLabel(row) {
+    const parts = [];
+    const setter = typeof row.setter === 'string' ? row.setter.trim() : '';
+    if (setter) parts.push(setter);
+    if (typeof row.number === 'number') parts.push(`#${row.number}`);
+    return parts.join(' · ');
+  }
+
+  // ── "No puzzle" days (Christmas etc.) ──
+  // A noPuzzle entry is a marker, not a solve: timeSeconds 0, completed false,
+  // no setter/number. Ticking the box makes the solve inputs meaningless, so
+  // they're disabled — the form can't express a contradictory state.
+  const META_FORMS = {
+    today: { time: 'crossword-time', setter: 'crossword-setter', number: 'crossword-number',
+             completed: 'crossword-completed', noPuzzle: 'crossword-nopuzzle' },
+    edit:  { time: 'crossword-edit-time', setter: 'crossword-edit-setter', number: 'crossword-edit-number',
+             completed: 'crossword-edit-completed', noPuzzle: 'crossword-edit-nopuzzle' }
+  };
+
+  function syncNoPuzzleUi(which) {
+    const f = META_FORMS[which];
+    const off = document.getElementById(f.noPuzzle).checked;
+    [f.time, f.setter, f.number, f.completed].forEach(id => {
+      document.getElementById(id).disabled = off;
+    });
+    if (off && which === 'today') clearMetaHints();
+  }
+
+  Object.keys(META_FORMS).forEach(which => {
+    document.getElementById(META_FORMS[which].noPuzzle)
+      .addEventListener('change', () => syncNoPuzzleUi(which));
+  });
+
+  // Muted "from Katy's entry" labels, set only by suggestPuzzleMeta()
+  function setMetaHint(id, text) {
+    document.getElementById(id).textContent = text;
+  }
+
+  function clearMetaHints() {
+    setMetaHint('crossword-setter-hint', '');
+    setMetaHint('crossword-number-hint', '');
+  }
+
+  // Once the user types, the value is theirs — the suggestion label is stale
+  ['crossword-setter', 'crossword-number'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => setMetaHint(`${id}-hint`, ''));
+  });
+
+  // Reads the optional fields off a form. Returns { setter, number } with
+  // `undefined` for blanks, or null when a value is invalid (message shown).
+  function readPuzzleMeta(which, msgId) {
+    const f = META_FORMS[which];
+    const setter = parseSetter(document.getElementById(f.setter).value);
+    if (setter === null) {
+      crosswordMsg(msgId, 'Setter name is too long (40 characters max).', 'error');
+      return null;
+    }
+    const number = parsePuzzleNumber(document.getElementById(f.number).value);
+    if (number === null) {
+      crosswordMsg(msgId, 'Puzzle number must be a whole number.', 'error');
+      return null;
+    }
+    return { setter, number };
+  }
+
   // "Tue 14 Jul 2026" from "YYYY-MM-DD" (parsed as local midnight, not UTC)
   function friendlyDate(dateStr) {
     return new Date(`${dateStr}T00:00:00`).toLocaleDateString('en-GB',
@@ -1186,16 +1384,23 @@
     try {
       const doc = await db.collection(SCORES).doc(`${localDateStr()}_${user.uid}`).get();
       const isEdit = doc.exists;
-      if (isEdit) {
-        document.getElementById('crossword-time').value = formatSecondsToClock(doc.data().timeSeconds);
-        document.getElementById('crossword-completed').checked = doc.data().completed;
-      } else {
-        // e.g. today's entry was just deleted from My Solves — don't show stale values
-        document.getElementById('crossword-time').value = '';
-        document.getElementById('crossword-completed').checked = true;
-      }
+      // No entry (e.g. today's was just deleted from My Solves) clears every
+      // field rather than leaving stale values behind.
+      const data = isEdit ? doc.data() : null;
+      const marker = !!data && data.noPuzzle === true;
+      document.getElementById('crossword-time').value =
+        data && !marker ? formatSecondsToClock(data.timeSeconds) : '';
+      document.getElementById('crossword-completed').checked = data ? data.completed === true : true;
+      document.getElementById('crossword-setter').value =
+        data && typeof data.setter === 'string' ? data.setter : '';
+      document.getElementById('crossword-number').value =
+        data && typeof data.number === 'number' ? String(data.number) : '';
+      document.getElementById('crossword-nopuzzle').checked = marker;
+      clearMetaHints();
+      syncNoPuzzleUi('today');
       document.getElementById('crossword-form-title').textContent = isEdit ? "Edit today's time" : "Log today's time";
       document.getElementById('crossword-submit').textContent = isEdit ? 'Update' : 'Submit';
+      suggestPuzzleMeta(); // no-op unless the setter/number inputs are still empty
     } catch (err) {
       console.error('Error loading today\'s entry:', err);
     }
@@ -1209,15 +1414,35 @@
 
   // Create-or-edit write for any date's entry. Read first: only set createdAt
   // on first write, so edits never reset it. Returns 'created' or 'updated'.
-  async function saveScoreFor(date, timeSeconds, completed) {
+  //
+  // `meta` carries the optional puzzle fields ({ setter, number, noPuzzle });
+  // undefined/blank means "no value". A value is written as-is; "no value" is
+  // omitted on create and FieldValue.delete()d on update, so a cleared field
+  // loses its key rather than being set to '' / null / false (which the rules
+  // reject with an opaque permission-denied).
+  async function saveScoreFor(date, timeSeconds, completed, meta = {}) {
     const user = auth.currentUser;
     if (!user) throw new Error('Not signed in');
     const ref = db.collection(SCORES).doc(`${date}_${user.uid}`);
     const existing = await ref.get();
+
+    const optional = {};
+    const wanted = {
+      setter: meta.setter,
+      number: meta.number,
+      noPuzzle: meta.noPuzzle === true ? true : undefined
+    };
+    Object.keys(wanted).forEach(key => {
+      const value = wanted[key];
+      if (value !== undefined && value !== null) optional[key] = value;
+      else if (existing.exists) optional[key] = firebase.firestore.FieldValue.delete();
+    });
+
     if (existing.exists) {
       await ref.update({
         timeSeconds,
         completed,
+        ...optional,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     } else {
@@ -1228,6 +1453,7 @@
         timeSeconds,
         completed,
         puzzle: 'daily',
+        ...optional,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -1239,17 +1465,26 @@
     event.preventDefault();
     if (!auth.currentUser) return;
 
-    const rawTime = document.getElementById('crossword-time').value.trim();
-    const timeSeconds = parseClockToSeconds(rawTime);
-    if (timeSeconds === null || timeSeconds === 0 || timeSeconds > 86400) {
-      crosswordMsg('crossword-form-msg', clockErrorMsg(rawTime), 'error');
-      return;
+    // No-puzzle marker: there is no time to give, so skip the clock parse
+    // entirely. Kept at the top so the normal path below is untouched.
+    const noPuzzle = document.getElementById('crossword-nopuzzle').checked;
+    let timeSeconds = 0, completed = false, meta = { noPuzzle: true };
+    if (!noPuzzle) {
+      const rawTime = document.getElementById('crossword-time').value.trim();
+      timeSeconds = parseClockToSeconds(rawTime);
+      if (timeSeconds === null || timeSeconds === 0 || timeSeconds > 86400) {
+        crosswordMsg('crossword-form-msg', clockErrorMsg(rawTime), 'error');
+        return;
+      }
+      meta = readPuzzleMeta('today', 'crossword-form-msg');
+      if (!meta) return;
+      completed = document.getElementById('crossword-completed').checked;
     }
-    const completed = document.getElementById('crossword-completed').checked;
 
     try {
-      const outcome = await saveScoreFor(localDateStr(), timeSeconds, completed);
-      crosswordMsg('crossword-form-msg', outcome === 'updated' ? 'Updated! ✓' : 'Logged! ✓', 'success');
+      const outcome = await saveScoreFor(localDateStr(), timeSeconds, completed, meta);
+      crosswordMsg('crossword-form-msg',
+        noPuzzle ? 'No puzzle today — noted ✓' : (outcome === 'updated' ? 'Updated! ✓' : 'Logged! ✓'), 'success');
       historyStale = true; // history list/tiles/charts refetch next time the tab is opened
       prefillTodayEntry();
       renderLeaderboard();
@@ -1258,6 +1493,68 @@
       console.error('Error saving score:', err);
       crosswordMsg('crossword-form-msg', 'Couldn\'t save your score. Please try again.', 'error');
     }
+  }
+
+  // Every entry for today, stashed by renderLeaderboard() (which already
+  // queries where('date','==',today)) so propagation costs no extra read.
+  let todayRows = [];
+
+  // Setters already seen in the signed-in user's own history, most recent
+  // first — the datalist behind both setter inputs. Refreshed from rows that
+  // renderMyStats()/renderMyHistory() already fetch; no extra query.
+  let knownSetters = [];
+
+  function distinctSettersByRecency(rows) {
+    const seen = new Set();
+    const out = [];
+    rows.slice()
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+      .forEach(r => {
+        const s = typeof r.setter === 'string' ? r.setter.trim() : '';
+        const key = s.toLowerCase();
+        if (!s || seen.has(key)) return;
+        seen.add(key);
+        out.push(s);
+      });
+    return out;
+  }
+
+  function refreshKnownSetters(rows) {
+    knownSetters = distinctSettersByRecency(rows);
+    document.getElementById('crossword-setter-options').innerHTML =
+      knownSetters.map(s => `<option value="${escapeHtml(s)}"></option>`).join('');
+  }
+
+  // Another family member may have logged today already — it's the same
+  // puzzle, so their setter/number save retyping. Fills only *empty* inputs,
+  // never overwriting what was typed or what the user's own entry supplied,
+  // which makes it idempotent and order-independent (openCrossword fires
+  // prefillTodayEntry and renderLeaderboard concurrently; both call this and
+  // whichever lands second is a no-op). Suggestion only: nothing is written
+  // until the user submits, and never to anyone else's doc.
+  function suggestPuzzleMeta() {
+    const user = auth.currentUser;
+    if (!user) return;
+    if (document.getElementById('crossword-nopuzzle').checked) return;
+    const others = todayRows.filter(r => r.uid !== user.uid && r.noPuzzle !== true);
+    if (!others.length) return;
+
+    const fill = (inputId, hintId, has, read) => {
+      const input = document.getElementById(inputId);
+      if (input.value.trim()) return;
+      const source = others.find(has);
+      if (!source) return;
+      input.value = read(source);
+      const who = String(source.displayName || '').trim().split(' ')[0];
+      setMetaHint(hintId, who ? `from ${who}'s entry` : 'from another entry');
+    };
+
+    fill('crossword-setter', 'crossword-setter-hint',
+      r => typeof r.setter === 'string' && r.setter.trim() !== '',
+      r => r.setter.trim());
+    fill('crossword-number', 'crossword-number-hint',
+      r => typeof r.number === 'number',
+      r => String(r.number));
   }
 
   async function renderLeaderboard() {
@@ -1270,7 +1567,8 @@
     try {
       // Single-field equality query; filter/sort in JS (no composite index needed)
       const snap = await db.collection(SCORES).where('date', '==', localDateStr()).get();
-      const rows = snap.docs.map(d => d.data())
+      todayRows = snap.docs.map(d => d.data()); // every entry for today — reused by suggestPuzzleMeta()
+      const rows = todayRows
         .filter(r => r.completed === true)
         .sort((a, b) => a.timeSeconds - b.timeSeconds);
 
@@ -1281,10 +1579,32 @@
           <span class="lb-time">${formatSecondsToClock(r.timeSeconds)}</span>
         </li>`).join('');
       empty.classList.toggle('hidden', rows.length > 0);
+      suggestPuzzleMeta();
     } catch (err) {
       console.error('Error loading leaderboard:', err);
       crosswordMsg('crossword-lb-error', 'Couldn\'t load the leaderboard.', 'error');
     }
+  }
+
+  // Pure: consecutive days with a completed entry, counting back from today.
+  // Today not logged yet doesn't break a streak ending yesterday, and a day
+  // with no puzzle published is neutral — skipped over without incrementing,
+  // so Christmas no longer silently ends a streak. Both sets hold "YYYY-MM-DD".
+  function currentStreak(completedDates, noPuzzleDates, todayStr) {
+    let streak = 0;
+    const cursor = new Date(`${todayStr}T00:00:00`);
+    let d = todayStr;
+    if (!completedDates.has(d)) {
+      cursor.setDate(cursor.getDate() - 1);
+      d = localDateStr(cursor);
+    }
+    // Terminates: noPuzzleDates is finite, so some earlier day is neither
+    while (completedDates.has(d) || noPuzzleDates.has(d)) {
+      if (completedDates.has(d)) streak++;
+      cursor.setDate(cursor.getDate() - 1);
+      d = localDateStr(cursor);
+    }
+    return streak;
   }
 
   async function renderMyStats() {
@@ -1297,17 +1617,12 @@
       const snap = await db.collection(SCORES).where('uid', '==', user.uid).get();
       const rows = snap.docs.map(d => d.data());
       const completedRows = rows.filter(r => r.completed === true);
+      refreshKnownSetters(rows);
 
-      // Current streak: consecutive days with a completed entry, up to today
-      // (today not logged yet doesn't break a streak ending yesterday)
-      const days = new Set(completedRows.map(r => r.date));
-      let streak = 0;
-      const cursor = new Date();
-      if (!days.has(localDateStr(cursor))) cursor.setDate(cursor.getDate() - 1);
-      while (days.has(localDateStr(cursor))) {
-        streak++;
-        cursor.setDate(cursor.getDate() - 1);
-      }
+      const streak = currentStreak(
+        new Set(completedRows.map(r => r.date)),
+        new Set(rows.filter(r => r.noPuzzle === true).map(r => r.date)),
+        localDateStr());
 
       const best = completedRows.length
         ? formatSecondsToClock(Math.min(...completedRows.map(r => r.timeSeconds)))
@@ -1315,7 +1630,8 @@
 
       document.getElementById('stat-streak').textContent = streak;
       document.getElementById('stat-best').textContent = best;
-      document.getElementById('stat-total').textContent = rows.length;
+      // No-puzzle markers aren't entries — they'd inflate the count
+      document.getElementById('stat-total').textContent = rows.filter(r => r.noPuzzle !== true).length;
     } catch (err) {
       console.error('Error loading stats:', err);
       crosswordMsg('crossword-stats-error', 'Couldn\'t load your stats.', 'error');
@@ -1403,10 +1719,13 @@
 
       myHistoryRows = all.slice().reverse(); // newest first for the tappable list
       renderSolvesList();
+      refreshKnownSetters(all); // keeps the datalist fresh after a back-filled setter
 
+      // completed-only, so no-puzzle markers never reach a timing statistic
       const points = all.filter(r => r.completed === true)
         .map(r => ({ date: r.date, timeSeconds: r.timeSeconds }));
       renderHistoryStats(points);
+      renderSetterCard(all); // before the Plotly gate: a table needs no charts
 
       const hasData = points.length > 0;
       document.getElementById('history-charts').classList.toggle('hidden', !hasData);
@@ -1476,10 +1795,23 @@
     list.innerHTML = items.map(item => {
       if (item.type === 'entry') {
         const r = item.row;
+        // A no-puzzle marker isn't a solve: no time shown (0:00 would be
+        // nonsense), but still tappable so the marker can be undone.
+        if (r.noPuzzle === true) {
+          return `
+      <li>
+        <button type="button" class="solve-row" data-date="${escapeHtml(r.date)}">
+          <span class="solve-date">${friendlyDate(r.date)}</span>
+          <span class="solve-dnf">no puzzle</span>
+        </button>
+      </li>`;
+        }
+        const meta = puzzleMetaLabel(r);
         return `
       <li>
         <button type="button" class="solve-row" data-date="${escapeHtml(r.date)}">
           <span class="solve-date">${friendlyDate(r.date)}</span>
+          ${meta ? `<span class="solve-meta">${escapeHtml(meta)}</span>` : ''}
           ${r.completed === true ? '' : '<span class="solve-dnf">not finished</span>'}
           <span class="solve-time">${formatSecondsToClock(r.timeSeconds)}</span>
         </button>
@@ -1537,12 +1869,19 @@
     editingDate = date;
 
     const existing = myHistoryRows.find(r => r.date === date) || null;
+    const marker = !!existing && existing.noPuzzle === true;
     document.getElementById('crossword-editor-title').textContent =
       `${existing ? 'Edit' : 'Add'} ${friendlyDate(date)}`;
     document.getElementById('crossword-edit-time').value =
-      existing ? formatSecondsToClock(existing.timeSeconds) : '';
+      existing && !marker ? formatSecondsToClock(existing.timeSeconds) : '';
     document.getElementById('crossword-edit-completed').checked =
       existing ? existing.completed === true : true;
+    document.getElementById('crossword-edit-setter').value =
+      existing && typeof existing.setter === 'string' ? existing.setter : '';
+    document.getElementById('crossword-edit-number').value =
+      existing && typeof existing.number === 'number' ? String(existing.number) : '';
+    document.getElementById('crossword-edit-nopuzzle').checked = marker;
+    syncNoPuzzleUi('edit');
     document.getElementById('crossword-edit-delete').classList.toggle('hidden', !existing);
 
     const editor = document.getElementById('crossword-editor');
@@ -1576,20 +1915,29 @@
       return;
     }
 
-    const rawTime = document.getElementById('crossword-edit-time').value.trim();
-    const timeSeconds = parseClockToSeconds(rawTime);
-    if (timeSeconds === null || timeSeconds === 0 || timeSeconds > 86400) {
-      crosswordMsg('crossword-edit-msg', clockErrorMsg(rawTime), 'error');
-      return;
+    // No-puzzle marker: skip the clock parse entirely (see submitScore)
+    const noPuzzle = document.getElementById('crossword-edit-nopuzzle').checked;
+    let timeSeconds = 0, completed = false, meta = { noPuzzle: true };
+    if (!noPuzzle) {
+      const rawTime = document.getElementById('crossword-edit-time').value.trim();
+      timeSeconds = parseClockToSeconds(rawTime);
+      if (timeSeconds === null || timeSeconds === 0 || timeSeconds > 86400) {
+        crosswordMsg('crossword-edit-msg', clockErrorMsg(rawTime), 'error');
+        return;
+      }
+      meta = readPuzzleMeta('edit', 'crossword-edit-msg');
+      if (!meta) return;
+      completed = document.getElementById('crossword-edit-completed').checked;
     }
-    const completed = document.getElementById('crossword-edit-completed').checked;
 
     try {
-      const outcome = await saveScoreFor(date, timeSeconds, completed);
+      const outcome = await saveScoreFor(date, timeSeconds, completed, meta);
       historyStale = true;
       closeScoreEditor();
       crosswordMsg('crossword-solves-msg',
-        `${friendlyDate(date)} ${outcome === 'updated' ? 'updated' : 'added'} ✓`, 'success');
+        noPuzzle
+          ? `${friendlyDate(date)} marked as no puzzle ✓`
+          : `${friendlyDate(date)} ${outcome === 'updated' ? 'updated' : 'added'} ✓`, 'success');
       refreshAfterAmend(date);
     } catch (err) {
       console.error('Error saving amended score:', err);
@@ -1613,6 +1961,70 @@
       console.error('Error deleting entry:', err);
       crosswordMsg('crossword-edit-msg', 'Couldn\'t delete. Please try again.', 'error');
     }
+  }
+
+  // ── By setter ──
+  // Pure: group completed solves by normalised setter. A table, not a chart —
+  // with one or two solves per setter a bar chart would overstate the evidence.
+  // `rows` may be in any date order; no-setter solves become the footnote count.
+  function buildSetterStats(rows) {
+    const completed = rows.filter(r => r.completed === true && typeof r.timeSeconds === 'number');
+    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const groups = new Map();
+    let noSetterCount = 0;
+
+    completed.forEach(r => {
+      const label = typeof r.setter === 'string' ? r.setter.trim() : '';
+      if (!label) { noSetterCount++; return; }
+      const key = label.toLowerCase(); // 'brassica' and 'Brassica' are one setter
+      let g = groups.get(key);
+      if (!g) groups.set(key, g = { label, labelDate: r.date, times: [] });
+      if (r.date >= g.labelDate) { g.label = label; g.labelDate = r.date; } // latest spelling wins
+      g.times.push(r.timeSeconds);
+    });
+
+    const overallAvg = completed.length ? mean(completed.map(r => r.timeSeconds)) : null;
+    const setters = [...groups.values()]
+      .map(g => {
+        const avg = mean(g.times);
+        return {
+          label: g.label,
+          count: g.times.length,
+          best: Math.min(...g.times),
+          avg,
+          vs: overallAvg === null ? null : avg - overallAvg // signed seconds; negative = faster
+        };
+      })
+      .sort((a, b) => b.count - a.count || a.avg - b.avg);
+
+    return { setters, noSetterCount, overallAvg };
+  }
+
+  function renderSetterCard(rows) {
+    const { setters, noSetterCount } = buildSetterStats(rows);
+    const card = document.getElementById('crossword-setter-card');
+    card.classList.toggle('hidden', setters.length === 0);
+    if (!setters.length) return; // nothing recorded yet — don't sit empty
+
+    document.getElementById('crossword-setter-rows').innerHTML = setters.map(s => {
+      const delta = Math.round(s.vs);
+      const cls = delta < 0 ? 'setter-faster' : delta > 0 ? 'setter-slower' : 'setter-even';
+      const sign = delta < 0 ? '−' : delta > 0 ? '+' : '±';
+      return `
+        <tr>
+          <td class="setter-name">${escapeHtml(s.label)}</td>
+          <td>${s.count}</td>
+          <td>${formatSecondsToClock(s.best)}</td>
+          <td>${formatSecondsToClock(Math.round(s.avg))}</td>
+          <td class="${cls}">${sign}${Math.abs(delta)}s</td>
+        </tr>`;
+    }).join('');
+
+    const foot = document.getElementById('crossword-setter-footnote');
+    foot.textContent = noSetterCount
+      ? `+ ${noSetterCount} solve${noSetterCount === 1 ? '' : 's'} with no setter recorded.`
+      : '';
+    foot.classList.toggle('hidden', noSetterCount === 0);
   }
 
   function renderHistoryStats(points) {

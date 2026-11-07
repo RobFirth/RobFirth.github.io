@@ -1360,6 +1360,15 @@
             <option value="honey"></option>
             <option value="anaerobic"></option>
           </datalist>
+          <label class="espresso-field espresso-field-text">Roast level
+            <input type="text" id="espresso-bean-roast-level" list="espresso-roast-options" maxlength="40" autocomplete="off">
+          </label>
+          <datalist id="espresso-roast-options">
+            <option value="light"></option>
+            <option value="medium"></option>
+            <option value="medium-dark"></option>
+            <option value="dark"></option>
+          </datalist>
           <label class="espresso-field espresso-field-text">Varietals (comma-separated)
             <input type="text" id="espresso-bean-varietals" maxlength="260" autocomplete="off">
           </label>
@@ -2642,6 +2651,7 @@
     { key: 'region', input: 'espresso-bean-region', label: 'Region', max: 60 },
     { key: 'producer', input: 'espresso-bean-producer', label: 'Producer', max: 80 },
     { key: 'process', input: 'espresso-bean-process', label: 'Process', max: 40 },
+    { key: 'roastLevel', input: 'espresso-bean-roast-level', label: 'Roast level', max: 40 },
     { key: 'roasterNotes', input: 'espresso-bean-notes', label: 'Roaster notes', max: 200 }
   ];
   const ORIGIN_KEYS = [...ORIGIN_TEXT_FIELDS.map(f => f.key), 'altitudeMin', 'altitudeMax', 'varietals'];
@@ -2667,11 +2677,16 @@
     return `${parts.join('–')}m`;
   }
 
-  // "Ethiopia · Guji · 1,900–2,200m · Washed · Heirloom", skipping empty parts
+  // Stored as typed; only the display capitalises, so "Dark Espresso" stays as printed
+  function capitalise(text) {
+    return text ? text[0].toUpperCase() + text.slice(1) : '';
+  }
+
+  // "Ethiopia · Guji · 1,900–2,200m · Washed · Dark · Heirloom", skipping empty parts
   function originLine(bean) {
-    const process = bean.process ? bean.process[0].toUpperCase() + bean.process.slice(1) : '';
     const varietals = Array.isArray(bean.varietals) ? bean.varietals.join(', ') : '';
-    return [bean.country, bean.region, bean.producer, formatAltitude(bean), process, varietals]
+    return [bean.country, bean.region, bean.producer, formatAltitude(bean),
+      capitalise(bean.process), capitalise(bean.roastLevel), varietals]
       .filter(Boolean)
       .join(' · ');
   }

@@ -854,7 +854,11 @@
     margin-bottom: 14px;
   }
 
-  .espresso-toolbar h2 { margin-bottom: 0; }
+  .espresso-toolbar h2 {
+    margin-bottom: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 
   .espresso-form label.espresso-field {
     display: flex;
@@ -894,6 +898,26 @@
     text-align: left;
     font-family: var(--font-body);
     resize: vertical;
+  }
+
+  .espresso-origin {
+    flex: 1 1 100%;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: flex-end;
+    border: none;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+
+  .espresso-origin legend {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    padding-right: 8px;
   }
 
   .espresso-secondary {
@@ -946,6 +970,19 @@
   }
 
   .espresso-detail-current { margin-top: 8px; }
+
+  .espresso-origin-line,
+  .espresso-roaster-notes {
+    margin-top: 6px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .espresso-roaster-notes { font-weight: 300; }
+
+  .espresso-origin-line:empty,
+  .espresso-roaster-notes:empty { display: none; }
 
   .espresso-shot {
     display: flex;
@@ -1297,6 +1334,39 @@
           <input type="checkbox" id="espresso-bean-decaf">
           Decaf
         </label>
+        <fieldset class="espresso-origin">
+          <legend>Origin</legend>
+          <label class="espresso-field espresso-field-text">Country
+            <input type="text" id="espresso-bean-country" maxlength="60" autocomplete="off">
+          </label>
+          <label class="espresso-field espresso-field-text">Region
+            <input type="text" id="espresso-bean-region" maxlength="60" autocomplete="off">
+          </label>
+          <label class="espresso-field espresso-field-text">Producer (farm, washing station or co-op)
+            <input type="text" id="espresso-bean-producer" maxlength="80" autocomplete="off">
+          </label>
+          <label class="espresso-field">Altitude from (m)
+            <input type="text" id="espresso-bean-altitude-min" inputmode="numeric" maxlength="5" autocomplete="off">
+          </label>
+          <label class="espresso-field">To (m)
+            <input type="text" id="espresso-bean-altitude-max" inputmode="numeric" maxlength="5" autocomplete="off">
+          </label>
+          <label class="espresso-field espresso-field-text">Process
+            <input type="text" id="espresso-bean-process" list="espresso-process-options" maxlength="40" autocomplete="off">
+          </label>
+          <datalist id="espresso-process-options">
+            <option value="washed"></option>
+            <option value="natural"></option>
+            <option value="honey"></option>
+            <option value="anaerobic"></option>
+          </datalist>
+          <label class="espresso-field espresso-field-text">Varietals (comma-separated)
+            <input type="text" id="espresso-bean-varietals" maxlength="260" autocomplete="off">
+          </label>
+          <label class="espresso-field espresso-field-text">Roaster notes
+            <textarea id="espresso-bean-notes" rows="2" maxlength="200"></textarea>
+          </label>
+        </fieldset>
         <button type="submit" class="crossword-submit" id="espresso-bean-save">Save</button>
         <button type="button" class="espresso-secondary" onclick="closeBeanForm()">Cancel</button>
         <button type="button" class="espresso-secondary hidden" id="espresso-bean-archive" onclick="toggleBeanArchived()">Archive</button>
@@ -1329,6 +1399,8 @@
           <button type="button" class="espresso-secondary" onclick="openBeanForm(espressoBean)">Edit bean</button>
         </div>
         <p id="espresso-detail-roast" class="crossword-hint"></p>
+        <p id="espresso-detail-origin" class="espresso-origin-line"></p>
+        <p id="espresso-detail-notes" class="espresso-roaster-notes"></p>
         <p id="espresso-detail-current" class="espresso-recipe espresso-detail-current"></p>
         <p id="espresso-detail-msg" class="form-msg"></p>
         <button type="button" class="espresso-secondary espresso-detail-current" onclick="closeBeanDetail()">← All beans</button>
@@ -2564,6 +2636,46 @@
     return `G${r.grind} · ${r.dose}→${r.yield}g · ${r.timeSeconds}s · 1:${(r.yield / r.dose).toFixed(1)}`;
   }
 
+  // Optional text on a bean, in form order. Length limits match the rules.
+  const ORIGIN_TEXT_FIELDS = [
+    { key: 'country', input: 'espresso-bean-country', label: 'Country', max: 60 },
+    { key: 'region', input: 'espresso-bean-region', label: 'Region', max: 60 },
+    { key: 'producer', input: 'espresso-bean-producer', label: 'Producer', max: 80 },
+    { key: 'process', input: 'espresso-bean-process', label: 'Process', max: 40 },
+    { key: 'roasterNotes', input: 'espresso-bean-notes', label: 'Roaster notes', max: 200 }
+  ];
+  const ORIGIN_KEYS = [...ORIGIN_TEXT_FIELDS.map(f => f.key), 'altitudeMin', 'altitudeMax', 'varietals'];
+
+  // Three-state like parseSetter: a value, undefined (blank) or null (invalid).
+  // Commas are dropped because the bean header prints altitude as 1,900m.
+  function parseAltitude(value) {
+    const t = String(value ?? '').trim().replace(/,/g, '');
+    if (!t) return undefined;
+    if (!/^\d{1,4}$/.test(t)) return null;
+    const n = parseInt(t, 10);
+    return n <= 3500 ? n : null;
+  }
+
+  function parseVarietals(value) {
+    return String(value ?? '').split(',').map(cleanText).filter(Boolean);
+  }
+
+  function formatAltitude(bean) {
+    const known = [bean.altitudeMin, bean.altitudeMax].filter(n => typeof n === 'number');
+    if (!known.length) return '';
+    const parts = [...new Set(known)].map(n => n.toLocaleString('en-GB'));
+    return `${parts.join('–')}m`;
+  }
+
+  // "Ethiopia · Guji · 1,900–2,200m · Washed · Heirloom", skipping empty parts
+  function originLine(bean) {
+    const process = bean.process ? bean.process[0].toUpperCase() + bean.process.slice(1) : '';
+    const varietals = Array.isArray(bean.varietals) ? bean.varietals.join(', ') : '';
+    return [bean.country, bean.region, bean.producer, formatAltitude(bean), process, varietals]
+      .filter(Boolean)
+      .join(' · ');
+  }
+
   // The fields a shot shares with a bean's `current` snapshot
   function recipeOf(r) {
     return { dose: r.dose, yield: r.yield, timeSeconds: r.timeSeconds, grind: r.grind };
@@ -2668,10 +2780,7 @@
     editingBean = bean;
     crosswordMsg('espresso-bean-msg', '', 'error');
     document.getElementById('espresso-bean-title').textContent = bean ? 'Edit bean' : 'Add bean';
-    document.getElementById('espresso-bean-roaster').value = bean ? bean.roaster : '';
-    document.getElementById('espresso-bean-name').value = bean ? bean.name : '';
-    document.getElementById('espresso-bean-roast').value = bean && bean.roastDate ? bean.roastDate : '';
-    document.getElementById('espresso-bean-decaf').checked = !!bean && bean.decaf === true;
+    fillBeanForm(bean || {});
     const archive = document.getElementById('espresso-bean-archive');
     archive.classList.toggle('hidden', !bean);
     archive.textContent = bean && bean.active !== true ? 'Unarchive' : 'Archive';
@@ -2679,6 +2788,63 @@
     card.classList.remove('hidden');
     card.scrollIntoView({ block: 'nearest' });
     document.getElementById('espresso-bean-roaster').focus();
+  }
+
+  // Inverse of beanFromForm(). Replaces the whole form: anything `bean` leaves
+  // out is cleared, so a caller with partial values should merge them first.
+  function fillBeanForm(bean) {
+    const set = (id, value) => { document.getElementById(id).value = value ?? ''; };
+    set('espresso-bean-roaster', bean.roaster);
+    set('espresso-bean-name', bean.name);
+    set('espresso-bean-roast', bean.roastDate);
+    document.getElementById('espresso-bean-decaf').checked = bean.decaf === true;
+    ORIGIN_TEXT_FIELDS.forEach(f => set(f.input, bean[f.key]));
+    set('espresso-bean-altitude-min', bean.altitudeMin);
+    set('espresso-bean-altitude-max', bean.altitudeMax);
+    set('espresso-bean-varietals', Array.isArray(bean.varietals) ? bean.varietals.join(', ') : '');
+  }
+
+  // The form as a bean's own fields, or null after showing what's wrong.
+  // Blank optional fields are left off, never written as '' or [].
+  function beanFromForm() {
+    const fail = text => { crosswordMsg('espresso-bean-msg', text, 'error'); return null; };
+
+    const roaster = cleanText(document.getElementById('espresso-bean-roaster').value);
+    const name = cleanText(document.getElementById('espresso-bean-name').value);
+    if (!roaster || !name) return fail('Give the bean a roaster and a name.');
+    if (roaster.length > 60 || name.length > 60) {
+      return fail('Roaster and name are limited to 60 characters.');
+    }
+    const bean = {
+      roaster,
+      name,
+      roastDate: document.getElementById('espresso-bean-roast').value || null,
+      decaf: document.getElementById('espresso-bean-decaf').checked
+    };
+
+    for (const f of ORIGIN_TEXT_FIELDS) {
+      const value = cleanText(document.getElementById(f.input).value);
+      if (value.length > f.max) return fail(`${f.label}: ${f.max} characters at most.`);
+      if (value) bean[f.key] = value;
+    }
+
+    const min = parseAltitude(document.getElementById('espresso-bean-altitude-min').value);
+    const max = parseAltitude(document.getElementById('espresso-bean-altitude-max').value);
+    if (min === null || max === null) return fail('Altitude must be a whole number from 0 to 3,500m.');
+    if (min !== undefined && max !== undefined && min > max) {
+      return fail('The lower altitude can\'t be above the higher one.');
+    }
+    if (min !== undefined || max !== undefined) {
+      bean.altitudeMin = min ?? max; // one value entered fills both
+      bean.altitudeMax = max ?? min;
+    }
+
+    const varietals = parseVarietals(document.getElementById('espresso-bean-varietals').value);
+    if (varietals.length > 6) return fail('List up to 6 varietals.');
+    if (varietals.some(v => v.length > 40)) return fail('Each varietal is limited to 40 characters.');
+    if (varietals.length) bean.varietals = varietals;
+
+    return bean;
   }
 
   function closeBeanForm() {
@@ -2704,27 +2870,21 @@
     const user = auth.currentUser;
     if (!user) return;
 
-    const roaster = cleanText(document.getElementById('espresso-bean-roaster').value);
-    const name = cleanText(document.getElementById('espresso-bean-name').value);
-    if (!roaster || !name) {
-      crosswordMsg('espresso-bean-msg', 'Give the bean a roaster and a name.', 'error');
-      return;
-    }
-    if (roaster.length > 60 || name.length > 60) {
-      crosswordMsg('espresso-bean-msg', 'Roaster and name are limited to 60 characters.', 'error');
-      return;
-    }
-    const roastDate = document.getElementById('espresso-bean-roast').value || null;
-    const decaf = document.getElementById('espresso-bean-decaf').checked;
+    const fields = beanFromForm();
+    if (!fields) return;
 
     const button = document.getElementById('espresso-bean-save');
     button.disabled = true;
     try {
       if (editingBean) {
-        await db.collection(BEANS).doc(editingBean.id).update({ roaster, name, roastDate, decaf, ...audit() });
+        // A field blanked on the form has to lose its key, as the rules reject ''
+        const cleared = {};
+        ORIGIN_KEYS.filter(key => !(key in fields))
+          .forEach(key => { cleared[key] = firebase.firestore.FieldValue.delete(); });
+        await db.collection(BEANS).doc(editingBean.id).update({ ...fields, ...cleared, ...audit() });
       } else {
         await db.collection(BEANS).add({
-          roaster, name, roastDate, decaf,
+          ...fields,
           active: true,
           current: null,
           createdBy: user.uid,
@@ -2789,6 +2949,8 @@
       `${escapeHtml(beanLabel(bean))}${beanTags(bean)}`;
     document.getElementById('espresso-detail-roast').textContent =
       bean.roastDate ? `Roasted ${friendlyDate(bean.roastDate)}` : '';
+    document.getElementById('espresso-detail-origin').textContent = originLine(bean);
+    document.getElementById('espresso-detail-notes').textContent = bean.roasterNotes || '';
     const current = document.getElementById('espresso-detail-current');
     current.textContent = bean.current ? recipeLine(bean.current) : 'No current recipe yet';
     current.classList.toggle('espresso-no-recipe', !bean.current);

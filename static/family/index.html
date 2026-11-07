@@ -2652,7 +2652,12 @@
     layout.legend = legendAbovePlot();
     if (series.length > 1) layout.height = 310; // room for the legend's rows
 
-    Plotly.react('chart-distribution', series.map(s => {
+    // Named setters sit on the baseline, where a handful of solves is easy to
+    // compare; "Other setters" and the bulk of no-setter solves stack above
+    const stackRank = { all: 0, setter: 0, other: 1, none: 2 };
+    const stacked = series.slice().sort((a, b) => stackRank[a.kind] - stackRank[b.kind]);
+
+    Plotly.react('chart-distribution', stacked.map(s => {
       return {
         type: 'histogram',
         name: s.name,

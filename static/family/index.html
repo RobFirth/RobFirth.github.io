@@ -2683,13 +2683,13 @@
       ...dotsFor(series.filter(isFaint)),
       {
         x: dates, y: runningAverage(times),
-        name: 'Running avg', mode: sparse ? 'lines+markers' : 'lines',
+        name: 'Running avg', mode: sparse ? 'lines+markers' : 'lines', opacity: 0.7,
         line: { color: t.line1, width: 2 }, marker: { size: 6 },
         hovertemplate: '%{y:.0f}s<extra>Running avg</extra>'
       },
       {
         x: dates, y: movingAverage(times, 6),
-        name: '6-day avg', mode: sparse ? 'lines+markers' : 'lines',
+        name: '6-day avg', mode: sparse ? 'lines+markers' : 'lines', opacity: 0.5,
         line: { color: t.line2, width: 2 }, marker: { size: 6 },
         hovertemplate: '%{y:.0f}s<extra>6-day avg</extra>'
       },

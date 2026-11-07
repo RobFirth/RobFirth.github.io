@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
 <title>Family · Dr Rob Firth</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<!-- Plotly, pinned — crossword My History charts. Deferred: only invoked lazily on tab open. -->
-<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
+<!-- Plotly, pinned by hash — bumping the version means replacing the integrity value too. Crossword My History charts. Deferred: only invoked lazily on tab open. -->
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous" defer></script>
 <style>
   :root {
     --bg: #0e1117;
@@ -1569,15 +1570,23 @@
 
   // ── User pill in nav ──
   function renderUserPill(user) {
-    const photo = user.photoURL || '';
-    const name = user.displayName || user.email;
-    userNav.innerHTML = `
-      <button class="user-pill" onclick="signOut()" title="Sign out">
-        ${photo ? `<img src="${photo}" alt="">` : ''}
-        <span>${name}</span>
-        <span class="sign-out-text">Sign out</span>
-      </button>
-    `;
+    const pill = document.createElement('button');
+    pill.className = 'user-pill';
+    pill.title = 'Sign out';
+    pill.addEventListener('click', () => signOut());
+    if (user.photoURL) {
+      const photo = document.createElement('img');
+      photo.src = user.photoURL;
+      photo.alt = '';
+      pill.append(photo);
+    }
+    const name = document.createElement('span');
+    name.textContent = user.displayName || user.email;
+    const signOutText = document.createElement('span');
+    signOutText.className = 'sign-out-text';
+    signOutText.textContent = 'Sign out';
+    pill.append(name, signOutText);
+    userNav.replaceChildren(pill);
   }
 </script>
 
@@ -1771,7 +1780,7 @@
       .addEventListener('change', () => syncNoPuzzleUi(which));
   });
 
-  // Muted "from Katy's entry" labels, set only by suggestPuzzleMeta()
+  // Muted "from <name>'s entry" labels, set only by suggestPuzzleMeta()
   function setMetaHint(id, text) {
     document.getElementById(id).textContent = text;
   }
@@ -1817,7 +1826,8 @@
   function escapeHtml(s) {
     const div = document.createElement('div');
     div.textContent = s ?? '';
-    return div.innerHTML;
+    // Quotes too: some callers put the result inside an HTML attribute
+    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function crosswordMsg(id, text, kind) {
@@ -2666,7 +2676,7 @@
     return [...distinct.values()];
   }
 
-  // Built with .value rather than innerHTML, as escapeHtml leaves quotes alone
+  // Built with .value rather than innerHTML
   function renderBeanSuggestions() {
     BEAN_SUGGESTIONS.forEach(({ key, list, defaults }) => {
       document.getElementById(list).replaceChildren(

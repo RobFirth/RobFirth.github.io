@@ -34,15 +34,14 @@
        colourblind-safe lightness band against --bg-card (validated pair, ΔE > 100) */
     --chart-line-1: #3d8bf5;
     --chart-line-2: #d9761a;
-    /* Setters on the charts. Validated all-pairs against --bg-card; the closest
-       pair (yellow/green, ΔE 6.9 protan) is only legal with the shape and
-       texture each setter also gets — see SETTER_LOOKS. A fifth setter folds
-       into "Other setters" rather than getting a generated hue. */
-    --chart-setter-1: #9085e9;
-    --chart-setter-2: #d55181;
-    --chart-setter-3: #c98500;
-    --chart-setter-4: #008300;
-    --chart-setter-other: #c9d1d9;
+    /* Setters on the charts: muted, and validated all-pairs against --bg-card
+       (worst pair ΔE 9.8 colourblind, 15.5 normal), so colour alone is enough.
+       A fifth setter folds into "Other setters" rather than getting a new hue. */
+    --chart-setter-1: #8c89d0;
+    --chart-setter-2: #a2535b;
+    --chart-setter-3: #ab8f3e;
+    --chart-setter-4: #0b79a0;
+    --chart-setter-other: #aeb6bf;
     --decaf: #b9dcff; /* pale blue, well clear of --accent so the tag reads as a label */
   }
 
@@ -2593,14 +2592,7 @@
     document.getElementById('hist-recent').textContent = recent.length ? formatSecondsToClock(mean(recent)) : '–';
   }
 
-  // Colour alone can't separate every pair, so each slot pairs a hue with a
-  // marker for the trend and a texture for the histogram.
-  const SETTER_LOOKS = [
-    { symbol: 'circle', pattern: '' },
-    { symbol: 'square', pattern: '/' },
-    { symbol: 'diamond', pattern: '.' },
-    { symbol: 'triangle-up', pattern: 'x' }
-  ];
+  const SETTER_SLOTS = 4; // one per --chart-setter-n
 
   // Pure: the series both charts draw from `points`. With no setter recorded
   // it's one plain series; otherwise no-setter solves, then the most-solved
@@ -2612,9 +2604,9 @@
 
     const ranked = groups.slice().sort((a, b) =>
       b.rows.length - a.rows.length || (a.firstDate < b.firstDate ? -1 : 1));
-    const named = ranked.slice(0, SETTER_LOOKS.length)
+    const named = ranked.slice(0, SETTER_SLOTS)
       .sort((a, b) => (a.firstDate < b.firstDate ? -1 : 1));
-    const others = ranked.slice(SETTER_LOOKS.length).flatMap(g => g.rows)
+    const others = ranked.slice(SETTER_SLOTS).flatMap(g => g.rows)
       .sort((a, b) => (a.date < b.date ? -1 : 1));
 
     return [
@@ -2624,12 +2616,11 @@
     ];
   }
 
-  // Colour, marker and texture for one series
+  // Solves with a setter stand out; the rest stay as faint as they always were
   function seriesLook(series, t) {
-    if (series.kind === 'all') return { color: t.line1, symbol: 'circle', pattern: '', size: 4, opacity: 0.4 };
-    if (series.kind === 'none') return { color: t.setterNone, symbol: 'circle', pattern: '', size: 4, opacity: 0.4 };
-    if (series.kind === 'other') return { color: t.setterOther, symbol: 'cross', pattern: '', size: 7, opacity: 1 };
-    return { color: t.setters[series.slot], size: 7, opacity: 1, ...SETTER_LOOKS[series.slot] };
+    if (series.kind === 'all') return { color: t.line1, opacity: 0.4 };
+    if (series.kind === 'none') return { color: t.setterNone, opacity: 0.4 };
+    return { color: series.kind === 'other' ? t.setterOther : t.setters[series.slot], opacity: 1 };
   }
 
   function renderDistributionChart(points) {
@@ -2650,17 +2641,12 @@
     if (series.length > 1) layout.height = 310; // room for the legend's rows
 
     Plotly.react('chart-distribution', series.map(s => {
-      const look = seriesLook(s, t);
       return {
         type: 'histogram',
         name: s.name,
         x: s.points.map(p => p.timeSeconds),
         xbins,
-        marker: {
-          color: look.color,
-          line: { color: t.card, width: 1 },
-          pattern: { shape: look.pattern, bgcolor: look.color, fgcolor: t.card, size: 6, solidity: 0.25 }
-        },
+        marker: { color: seriesLook(s, t).color, line: { color: t.card, width: 1 } },
         hovertemplate: '%{x}s: %{y} solve(s)<extra>%{fullData.name}</extra>'
       };
     }), layout, CHART_CONFIG);
@@ -2686,7 +2672,7 @@
       return {
         x: s.points.map(p => p.date), y: s.points.map(p => p.timeSeconds),
         name: s.name, mode: 'markers',
-        marker: { size: look.size, color: look.color, symbol: look.symbol, opacity: look.opacity },
+        marker: { size: 4, color: look.color, opacity: look.opacity },
         hovertemplate: '%{y:.0f}s<extra>%{fullData.name}</extra>'
       };
     });

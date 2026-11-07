@@ -34,13 +34,15 @@
        colourblind-safe lightness band against --bg-card (validated pair, ΔE > 100) */
     --chart-line-1: #3d8bf5;
     --chart-line-2: #d9761a;
-    /* Setters on the charts: muted, and validated all-pairs against --bg-card
-       (worst pair ΔE 9.8 colourblind, 15.5 normal), so colour alone is enough.
-       A fifth setter folds into "Other setters" rather than getting a new hue. */
-    --chart-setter-1: #8c89d0;
-    --chart-setter-2: #a2535b;
-    --chart-setter-3: #ab8f3e;
-    --chart-setter-4: #0b79a0;
+    /* Setters on the charts: Flat UI v1 wisteria, pomegranate, nephritis and
+       Peter River, validated all-pairs against --bg-card (worst pair ΔE 11.2
+       colourblind, 21.0 normal), so colour alone is enough. Peter River is last
+       because it's close to --chart-line-1. A fifth setter folds into "Other
+       setters" rather than getting a new hue. */
+    --chart-setter-1: #8e44ad;
+    --chart-setter-2: #c0392b;
+    --chart-setter-3: #27ae60;
+    --chart-setter-4: #3498db;
     --chart-setter-other: #aeb6bf;
     --decaf: #b9dcff; /* pale blue, well clear of --accent so the tag reads as a label */
   }

@@ -913,7 +913,7 @@
 
   .espresso-bean-name { flex: 1 1 100%; }
 
-  .espresso-archived-tag {
+  .espresso-tag {
     font-family: var(--font-display);
     font-size: 0.6rem;
     text-transform: uppercase;
@@ -1281,6 +1281,10 @@
         </label>
         <label class="espresso-field">Roast date (optional)
           <input type="date" id="espresso-bean-roast">
+        </label>
+        <label class="crossword-check">
+          <input type="checkbox" id="espresso-bean-decaf">
+          Decaf
         </label>
         <button type="submit" class="crossword-submit" id="espresso-bean-save">Save</button>
         <button type="button" class="espresso-secondary" onclick="closeBeanForm()">Cancel</button>
@@ -2558,6 +2562,13 @@
     return `${bean.roaster} — ${bean.name}`;
   }
 
+  function beanTags(bean) {
+    return [bean.decaf === true ? 'Decaf' : '', bean.active === true ? '' : 'Archived']
+      .filter(Boolean)
+      .map(tag => `<span class="espresso-tag">${tag}</span>`)
+      .join('');
+  }
+
   function cleanText(value) {
     return String(value ?? '').trim().replace(/\s+/g, ' ');
   }
@@ -2624,7 +2635,7 @@
     document.getElementById('espresso-bean-list').innerHTML = espressoBeanRows.map((b, i) => `
       <li>
         <button type="button" class="solve-row espresso-bean-row" data-index="${i}">
-          <span class="espresso-bean-name">${escapeHtml(beanLabel(b))}${b.active === true ? '' : '<span class="espresso-archived-tag">Archived</span>'}</span>
+          <span class="espresso-bean-name">${escapeHtml(beanLabel(b))}${beanTags(b)}</span>
           <span class="espresso-recipe${b.current ? '' : ' espresso-no-recipe'}">${b.current ? escapeHtml(recipeLine(b.current)) : 'No recipe yet'}</span>
         </button>
       </li>`).join('');
@@ -2649,6 +2660,7 @@
     document.getElementById('espresso-bean-roaster').value = bean ? bean.roaster : '';
     document.getElementById('espresso-bean-name').value = bean ? bean.name : '';
     document.getElementById('espresso-bean-roast').value = bean && bean.roastDate ? bean.roastDate : '';
+    document.getElementById('espresso-bean-decaf').checked = !!bean && bean.decaf === true;
     const archive = document.getElementById('espresso-bean-archive');
     archive.classList.toggle('hidden', !bean);
     archive.textContent = bean && bean.active !== true ? 'Unarchive' : 'Archive';
@@ -2692,15 +2704,16 @@
       return;
     }
     const roastDate = document.getElementById('espresso-bean-roast').value || null;
+    const decaf = document.getElementById('espresso-bean-decaf').checked;
 
     const button = document.getElementById('espresso-bean-save');
     button.disabled = true;
     try {
       if (editingBean) {
-        await db.collection(BEANS).doc(editingBean.id).update({ roaster, name, roastDate, ...audit() });
+        await db.collection(BEANS).doc(editingBean.id).update({ roaster, name, roastDate, decaf, ...audit() });
       } else {
         await db.collection(BEANS).add({
-          roaster, name, roastDate,
+          roaster, name, roastDate, decaf,
           active: true,
           current: null,
           createdBy: user.uid,
@@ -2761,8 +2774,8 @@
 
   function renderBeanHeader() {
     const bean = espressoBean;
-    document.getElementById('espresso-detail-title').textContent =
-      bean.active === true ? beanLabel(bean) : `${beanLabel(bean)} (archived)`;
+    document.getElementById('espresso-detail-title').innerHTML =
+      `${escapeHtml(beanLabel(bean))}${beanTags(bean)}`;
     document.getElementById('espresso-detail-roast').textContent =
       bean.roastDate ? `Roasted ${friendlyDate(bean.roastDate)}` : '';
     const current = document.getElementById('espresso-detail-current');

@@ -34,6 +34,15 @@
        colourblind-safe lightness band against --bg-card (validated pair, ΔE > 100) */
     --chart-line-1: #3d8bf5;
     --chart-line-2: #d9761a;
+    /* Setters on the charts. Validated all-pairs against --bg-card; the closest
+       pair (yellow/green, ΔE 6.9 protan) is only legal with the shape and
+       texture each setter also gets — see SETTER_LOOKS. A fifth setter folds
+       into "Other setters" rather than getting a generated hue. */
+    --chart-setter-1: #9085e9;
+    --chart-setter-2: #d55181;
+    --chart-setter-3: #c98500;
+    --chart-setter-4: #008300;
+    --chart-setter-other: #c9d1d9;
     --decaf: #b9dcff; /* pale blue, well clear of --accent so the tag reads as a label */
   }
 
@@ -2188,7 +2197,10 @@
       card: v('--bg-card'),
       font: v('--font-body'),
       line1: v('--chart-line-1'),
-      line2: v('--chart-line-2')
+      line2: v('--chart-line-2'),
+      setters: [1, 2, 3, 4].map(n => v(`--chart-setter-${n}`)),
+      setterOther: v('--chart-setter-other'),
+      setterNone: v('--text-dim')
     };
   }
 
@@ -2204,6 +2216,16 @@
   }
 
   const CHART_CONFIG = { displayModeBar: false };
+
+  // Fixed-width entries wrap into even rows; anchored outside the plot, the
+  // legend claims its own space instead of sitting on the data.
+  function legendAbovePlot() {
+    return {
+      orientation: 'h', x: 0, y: 1, yanchor: 'bottom',
+      font: { size: 11 }, traceorder: 'normal',
+      entrywidth: 74, entrywidthmode: 'pixels' // plus Plotly's swatch, about 40px
+    };
+  }
 
   function resizeHistoryCharts() {
     if (typeof Plotly === 'undefined') return;
@@ -2234,7 +2256,7 @@
 
       // completed-only, so no-puzzle markers never reach a timing statistic
       const points = all.filter(r => r.completed === true)
-        .map(r => ({ date: r.date, timeSeconds: r.timeSeconds }));
+        .map(r => ({ date: r.date, timeSeconds: r.timeSeconds, setter: r.setter }));
       renderHistoryStats(points);
       renderSetterCard(all); // before the Plotly gate: a table needs no charts
 
@@ -2485,33 +2507,42 @@
   }
 
   // ── By setter ──
+  // Pure: split rows by normalised setter. Each group's `firstDate` is its
+  // earliest row; rows without a setter come back separately.
+  function groupBySetter(rows) {
+    const groups = new Map();
+    const noSetter = [];
+    rows.forEach(r => {
+      const label = typeof r.setter === 'string' ? r.setter.trim() : '';
+      if (!label) { noSetter.push(r); return; }
+      const key = label.toLowerCase(); // 'brassica' and 'Brassica' are one setter
+      let g = groups.get(key);
+      if (!g) groups.set(key, g = { label, labelDate: r.date, firstDate: r.date, rows: [] });
+      if (r.date >= g.labelDate) { g.label = label; g.labelDate = r.date; } // latest spelling wins
+      if (r.date < g.firstDate) g.firstDate = r.date;
+      g.rows.push(r);
+    });
+    return { groups: [...groups.values()], noSetter };
+  }
+
   // Pure: group completed solves by normalised setter. A table, not a chart —
   // with one or two solves per setter a bar chart would overstate the evidence.
   // `rows` may be in any date order; no-setter solves become the footnote count.
   function buildSetterStats(rows) {
     const completed = rows.filter(r => r.completed === true && typeof r.timeSeconds === 'number');
     const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
-    const groups = new Map();
-    let noSetterCount = 0;
-
-    completed.forEach(r => {
-      const label = typeof r.setter === 'string' ? r.setter.trim() : '';
-      if (!label) { noSetterCount++; return; }
-      const key = label.toLowerCase(); // 'brassica' and 'Brassica' are one setter
-      let g = groups.get(key);
-      if (!g) groups.set(key, g = { label, labelDate: r.date, times: [] });
-      if (r.date >= g.labelDate) { g.label = label; g.labelDate = r.date; } // latest spelling wins
-      g.times.push(r.timeSeconds);
-    });
+    const { groups, noSetter } = groupBySetter(completed);
+    const noSetterCount = noSetter.length;
 
     const overallAvg = completed.length ? mean(completed.map(r => r.timeSeconds)) : null;
-    const setters = [...groups.values()]
+    const setters = groups
       .map(g => {
-        const avg = mean(g.times);
+        const times = g.rows.map(r => r.timeSeconds);
+        const avg = mean(times);
         return {
           label: g.label,
-          count: g.times.length,
-          best: Math.min(...g.times),
+          count: times.length,
+          best: Math.min(...times),
           avg,
           vs: overallAvg === null ? null : avg - overallAvg // signed seconds; negative = faster
         };
@@ -2562,20 +2593,77 @@
     document.getElementById('hist-recent').textContent = recent.length ? formatSecondsToClock(mean(recent)) : '–';
   }
 
+  // Colour alone can't separate every pair, so each slot pairs a hue with a
+  // marker for the trend and a texture for the histogram.
+  const SETTER_LOOKS = [
+    { symbol: 'circle', pattern: '' },
+    { symbol: 'square', pattern: '/' },
+    { symbol: 'diamond', pattern: '.' },
+    { symbol: 'triangle-up', pattern: 'x' }
+  ];
+
+  // Pure: the series both charts draw from `points`. With no setter recorded
+  // it's one plain series; otherwise no-setter solves, then the most-solved
+  // setters, then "Other setters". Slots follow first appearance, not rank, so
+  // one setter overtaking another doesn't swap their colours.
+  function buildSetterSeries(points) {
+    const { groups, noSetter } = groupBySetter(points);
+    if (!groups.length) return [{ kind: 'all', name: 'Solve time', points }];
+
+    const ranked = groups.slice().sort((a, b) =>
+      b.rows.length - a.rows.length || (a.firstDate < b.firstDate ? -1 : 1));
+    const named = ranked.slice(0, SETTER_LOOKS.length)
+      .sort((a, b) => (a.firstDate < b.firstDate ? -1 : 1));
+    const others = ranked.slice(SETTER_LOOKS.length).flatMap(g => g.rows)
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+    return [
+      ...(noSetter.length ? [{ kind: 'none', name: 'No setter', points: noSetter }] : []),
+      ...named.map((g, slot) => ({ kind: 'setter', slot, name: g.label, points: g.rows })),
+      ...(others.length ? [{ kind: 'other', name: 'Other setters', points: others }] : [])
+    ];
+  }
+
+  // Colour, marker and texture for one series
+  function seriesLook(series, t) {
+    if (series.kind === 'all') return { color: t.line1, symbol: 'circle', pattern: '', size: 4, opacity: 0.4 };
+    if (series.kind === 'none') return { color: t.setterNone, symbol: 'circle', pattern: '', size: 4, opacity: 0.4 };
+    if (series.kind === 'other') return { color: t.setterOther, symbol: 'cross', pattern: '', size: 7, opacity: 1 };
+    return { color: t.setters[series.slot], size: 7, opacity: 1, ...SETTER_LOOKS[series.slot] };
+  }
+
   function renderDistributionChart(points) {
     const t = chartTheme();
     const layout = baseLayout(t);
     layout.xaxis.title = { text: 'solve time (seconds)', font: { size: 11 } };
     layout.yaxis.title = { text: 'solves', font: { size: 11 } };
     layout.bargap = 0.06;
+    layout.barmode = 'stack';
 
-    Plotly.react('chart-distribution', [{
-      type: 'histogram',
-      x: points.map(p => p.timeSeconds),
-      xbins: { size: 5 },
-      marker: { color: t.line1, line: { color: t.card, width: 1 } },
-      hovertemplate: '%{x}s: %{y} solve(s)<extra></extra>'
-    }], layout, CHART_CONFIG);
+    const series = buildSetterSeries(points);
+    const times = points.map(p => p.timeSeconds);
+    // Explicit edges: stacked traces must land in the same bins
+    const xbins = { start: Math.floor(Math.min(...times) / 5) * 5, end: Math.max(...times) + 5, size: 5 };
+
+    layout.showlegend = series.length > 1;
+    layout.legend = legendAbovePlot();
+    if (series.length > 1) layout.height = 310; // room for the legend's rows
+
+    Plotly.react('chart-distribution', series.map(s => {
+      const look = seriesLook(s, t);
+      return {
+        type: 'histogram',
+        name: s.name,
+        x: s.points.map(p => p.timeSeconds),
+        xbins,
+        marker: {
+          color: look.color,
+          line: { color: t.card, width: 1 },
+          pattern: { shape: look.pattern, bgcolor: look.color, fgcolor: t.card, size: 6, solidity: 0.25 }
+        },
+        hovertemplate: '%{x}s: %{y} solve(s)<extra>%{fullData.name}</extra>'
+      };
+    }), layout, CHART_CONFIG);
   }
 
   function renderTrendChart(points) {
@@ -2589,28 +2677,37 @@
     layout.yaxis.title = { text: 'seconds', font: { size: 11 } };
     layout.hovermode = 'x unified';
     layout.hoverlabel = { bgcolor: t.card, bordercolor: t.grid, font: { family: t.font, color: t.text } };
-    layout.legend = { orientation: 'h', x: 0, y: 1.12, font: { size: 11 } };
-    layout.margin.t = 28;
+    layout.legend = legendAbovePlot();
+    layout.height = 330; // room for the legend's rows
 
+    const series = buildSetterSeries(points);
+    const dotsFor = list => list.map(s => {
+      const look = seriesLook(s, t);
+      return {
+        x: s.points.map(p => p.date), y: s.points.map(p => p.timeSeconds),
+        name: s.name, mode: 'markers',
+        marker: { size: look.size, color: look.color, symbol: look.symbol, opacity: look.opacity },
+        hovertemplate: '%{y:.0f}s<extra>%{fullData.name}</extra>'
+      };
+    });
+
+    // Faint dots behind the averages, setters in front of them
+    const isFaint = s => s.kind === 'all' || s.kind === 'none';
     Plotly.react('chart-trend', [
-      {
-        x: dates, y: times,
-        name: 'Solve time', mode: 'markers',
-        marker: { size: 4, color: t.line1, opacity: 0.4 },
-        hovertemplate: '%{y:.0f}s<extra>Solve time</extra>'
-      },
+      ...dotsFor(series.filter(isFaint)),
       {
         x: dates, y: runningAverage(times),
-        name: 'Running average', mode: sparse ? 'lines+markers' : 'lines',
+        name: 'Running avg', mode: sparse ? 'lines+markers' : 'lines',
         line: { color: t.line1, width: 2 }, marker: { size: 6 },
         hovertemplate: '%{y:.0f}s<extra>Running avg</extra>'
       },
       {
         x: dates, y: movingAverage(times, 6),
-        name: '6-day moving average', mode: sparse ? 'lines+markers' : 'lines',
+        name: '6-day avg', mode: sparse ? 'lines+markers' : 'lines',
         line: { color: t.line2, width: 2 }, marker: { size: 6 },
         hovertemplate: '%{y:.0f}s<extra>6-day avg</extra>'
-      }
+      },
+      ...dotsFor(series.filter(s => !isFaint(s)))
     ], layout, CHART_CONFIG);
   }
 </script>

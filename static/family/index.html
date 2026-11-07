@@ -834,6 +834,138 @@
 
   .setter-footnote { margin-top: 12px; }
 
+  /* ── ESPRESSO ──
+     Layout, cards, form messages and the submit button are the crossword
+     classes; only what's specific to beans and shots is defined here. */
+  #view-espresso {
+    max-width: 680px;
+    width: 100%;
+    margin: 0 auto;
+    align-self: flex-start;
+  }
+
+  .espresso-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .espresso-toolbar h2 { margin-bottom: 0; }
+
+  .espresso-form label.espresso-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .espresso-form .espresso-field input,
+  .espresso-form .espresso-field select,
+  .espresso-form .espresso-field textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    padding: 9px 10px;
+    color-scheme: dark;
+  }
+
+  .espresso-form .espresso-field input:focus,
+  .espresso-form .espresso-field select:focus,
+  .espresso-form .espresso-field textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .espresso-form .espresso-field input[type="text"] { width: 84px; }
+
+  .espresso-form .espresso-field-text,
+  .espresso-form .espresso-field-text input[type="text"],
+  .espresso-form .espresso-field-text textarea {
+    flex: 1 1 100%;
+    width: 100%;
+    text-align: left;
+    font-family: var(--font-body);
+    resize: vertical;
+  }
+
+  .espresso-secondary {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .espresso-secondary:hover { color: var(--text); border-color: var(--text-dim); }
+
+  .espresso-bean-row { flex-wrap: wrap; }
+
+  .espresso-bean-name { flex: 1 1 100%; }
+
+  .espresso-archived-tag {
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-left: 6px;
+  }
+
+  .espresso-recipe {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    color: var(--accent);
+    overflow-wrap: anywhere;
+  }
+
+  .espresso-recipe.espresso-no-recipe {
+    font-family: var(--font-body);
+    color: var(--text-dim);
+  }
+
+  .espresso-detail-current { margin-top: 8px; }
+
+  .espresso-shot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .espresso-shot:first-child { border-top: none; }
+
+  .espresso-shot .espresso-recipe { flex: 1 1 auto; }
+
+  .espresso-shot-meta,
+  .espresso-shot-notes {
+    flex: 1 1 100%;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .espresso-shot-notes {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .espresso-current-tag {
+    font-size: 0.78rem;
+    color: var(--success-text);
+  }
+
   /* ── UTILITIES ── */
   .hidden { display: none !important; }
 
@@ -902,6 +1034,12 @@
         <span class="card-icon">📊</span>
         <h3>Crossword Scores</h3>
         <p>Daily crossword leaderboard.</p>
+      </div>
+
+      <div class="app-card" onclick="openEspresso()" style="cursor:pointer;">
+        <span class="card-icon">☕</span>
+        <h3>Espresso</h3>
+        <p>Bean recipes and shot log.</p>
       </div>
     </div>
 
@@ -1122,6 +1260,111 @@
     </div><!-- /crossword-pane-history -->
   </div>
 
+  <!-- ESPRESSO -->
+  <div id="view-espresso" class="hidden">
+    <button onclick="closeEspresso()" style="background:none; border:1px solid rgba(255,255,255,0.3); color:white; padding:8px 16px; border-radius:6px; cursor:pointer; margin-bottom:20px; font-family:inherit;">← Back to dashboard</button>
+
+    <div class="crossword-header">
+      <h1>☕ Espresso</h1>
+      <p>Our bean recipes and shots.</p>
+    </div>
+
+    <!-- Add/edit bean — outside both panes, reachable from either -->
+    <div id="espresso-bean-card" class="crossword-card hidden">
+      <h2 id="espresso-bean-title">Add bean</h2>
+      <form class="crossword-form espresso-form" onsubmit="saveBean(event)">
+        <label class="espresso-field espresso-field-text">Roaster
+          <input type="text" id="espresso-bean-roaster" maxlength="60" autocomplete="off">
+        </label>
+        <label class="espresso-field espresso-field-text">Bean
+          <input type="text" id="espresso-bean-name" maxlength="60" autocomplete="off">
+        </label>
+        <label class="espresso-field">Roast date (optional)
+          <input type="date" id="espresso-bean-roast">
+        </label>
+        <button type="submit" class="crossword-submit" id="espresso-bean-save">Save</button>
+        <button type="button" class="espresso-secondary" onclick="closeBeanForm()">Cancel</button>
+        <button type="button" class="espresso-secondary hidden" id="espresso-bean-archive" onclick="toggleBeanArchived()">Archive</button>
+      </form>
+      <p id="espresso-bean-msg" class="form-msg"></p>
+    </div>
+
+    <!-- Bean list -->
+    <div id="espresso-pane-list">
+      <div class="crossword-card">
+        <div class="espresso-toolbar">
+          <h2>Beans</h2>
+          <label class="crossword-check">
+            <input type="checkbox" id="espresso-show-archived" onchange="renderBeanList()">
+            Show archived
+          </label>
+          <button type="button" class="espresso-secondary" onclick="openBeanForm(null)">Add bean</button>
+        </div>
+        <ul id="espresso-bean-list" class="solves-list"></ul>
+        <p id="espresso-beans-empty" class="crossword-empty hidden"></p>
+        <p id="espresso-beans-msg" class="form-msg"></p>
+      </div>
+    </div>
+
+    <!-- Bean detail -->
+    <div id="espresso-pane-detail" class="hidden">
+      <div class="crossword-card">
+        <div class="espresso-toolbar">
+          <h2 id="espresso-detail-title"></h2>
+          <button type="button" class="espresso-secondary" onclick="openBeanForm(espressoBean)">Edit bean</button>
+        </div>
+        <p id="espresso-detail-roast" class="crossword-hint"></p>
+        <p id="espresso-detail-current" class="espresso-recipe espresso-detail-current"></p>
+        <p id="espresso-detail-msg" class="form-msg"></p>
+        <button type="button" class="espresso-secondary espresso-detail-current" onclick="closeBeanDetail()">← All beans</button>
+      </div>
+
+      <div class="crossword-card">
+        <h2>Log a shot</h2>
+        <form class="crossword-form espresso-form" onsubmit="submitShot(event)">
+          <label class="espresso-field">Grind (1–16)
+            <input type="text" id="espresso-shot-grind" inputmode="numeric" maxlength="2" autocomplete="off">
+          </label>
+          <label class="espresso-field">Dose (g)
+            <input type="text" id="espresso-shot-dose" inputmode="decimal" maxlength="5" autocomplete="off">
+          </label>
+          <label class="espresso-field">Yield (g)
+            <input type="text" id="espresso-shot-yield" inputmode="decimal" maxlength="6" autocomplete="off">
+          </label>
+          <label class="espresso-field">Time
+            <input type="text" id="espresso-shot-time" placeholder="M:SS" inputmode="numeric" maxlength="5" autocomplete="off">
+          </label>
+          <label class="espresso-field">Rating (optional)
+            <select id="espresso-shot-rating">
+              <option value="">–</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+          <label class="espresso-field espresso-field-text">Notes (optional)
+            <textarea id="espresso-shot-notes" rows="2" maxlength="280"></textarea>
+          </label>
+          <label class="crossword-check">
+            <input type="checkbox" id="espresso-shot-make-current">
+            Make this the current recipe
+          </label>
+          <button type="submit" class="crossword-submit" id="espresso-shot-submit">Log shot</button>
+        </form>
+        <p id="espresso-shot-msg" class="form-msg"></p>
+      </div>
+
+      <div class="crossword-card">
+        <h2>Shot history</h2>
+        <ul id="espresso-shot-list" class="solves-list"></ul>
+        <p id="espresso-shots-empty" class="crossword-empty hidden">No shots logged for this bean yet.</p>
+        <p id="espresso-shots-msg" class="form-msg"></p>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <footer>
@@ -1161,7 +1404,8 @@
   const viewDashboard = document.getElementById('view-dashboard');
   const viewPageViewer = document.getElementById('page-viewer');
   const viewCrossword = document.getElementById('view-crossword');
-  const btnSignin     = document.getElementById('btn-signin');
+  const viewEspresso  = document.getElementById('view-espresso');
+  const btnSignin    = document.getElementById('btn-signin');
   const errorBanner   = document.getElementById('error-banner');
   const userNav       = document.getElementById('user-nav');
   const greeting      = document.getElementById('greeting');
@@ -1208,7 +1452,8 @@
     viewDashboard.classList.add('hidden');
     viewPageViewer.classList.add('hidden');
     viewCrossword.classList.add('hidden');
-    if (name === 'loading')   viewLoading.classList.remove('hidden');
+    viewEspresso.classList.add('hidden');
+    if (name === 'loading')  viewLoading.classList.remove('hidden');
     if (name === 'signin')    viewSignin.classList.remove('hidden');
     if (name === 'dashboard') viewDashboard.classList.remove('hidden');
   }
@@ -2280,6 +2525,399 @@
         hovertemplate: '%{y:.0f}s<extra>6-day avg</extra>'
       }
     ], layout, CHART_CONFIG);
+  }
+</script>
+
+<script>
+  // ── Espresso ──
+  // Fixed kit, deliberately not stored: Sage Barista Express, built-in grinder,
+  // double unpressurised basket, factory inner burr, default temperature.
+  // Clock fields, escaping and messages reuse the crossword helpers above.
+  const BEANS = 'espresso_beans';
+  const SHOTS = 'espresso_shots';
+
+  let espressoBeans = [];      // every bean, as fetched
+  let espressoBeanRows = [];   // what the list shows; a row's data-index points here
+  let espressoBean = null;     // the bean open in detail, null on the list
+  let espressoShots = [];      // that bean's shots, newest first
+  let editingBean = null;      // bean in the form, null when adding
+
+  wireClockInput(document.getElementById('espresso-shot-time'));
+
+  // "G7 · 18→36g · 28s · 1:2.0" — the ratio is always computed, never stored
+  function recipeLine(r) {
+    return `G${r.grind} · ${r.dose}→${r.yield}g · ${r.timeSeconds}s · 1:${(r.yield / r.dose).toFixed(1)}`;
+  }
+
+  // The fields a shot shares with a bean's `current` snapshot
+  function recipeOf(r) {
+    return { dose: r.dose, yield: r.yield, timeSeconds: r.timeSeconds, grind: r.grind };
+  }
+
+  function beanLabel(bean) {
+    return `${bean.roaster} — ${bean.name}`;
+  }
+
+  function cleanText(value) {
+    return String(value ?? '').trim().replace(/\s+/g, ' ');
+  }
+
+  // Grams as typed on the scales; null if malformed or outside the rules' bounds
+  function parseGrams(value, min, max) {
+    const t = String(value ?? '').trim();
+    if (!/^\d{1,3}(\.\d{1,2})?$/.test(t)) return null;
+    const n = parseFloat(t);
+    return n >= min && n <= max ? n : null;
+  }
+
+  function parseGrind(value) {
+    const t = String(value ?? '').trim();
+    if (!/^\d{1,2}$/.test(t)) return null;
+    const n = parseInt(t, 10);
+    return n >= 1 && n <= 16 ? n : null;
+  }
+
+  function audit() {
+    return {
+      updatedBy: auth.currentUser.uid,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+  }
+
+  // The bean update behind both "make current" paths
+  function currentPatch(shotId, recipe) {
+    return { current: { shotId, ...recipeOf(recipe) }, ...audit() };
+  }
+
+  function openEspresso() {
+    viewDashboard.classList.add('hidden');
+    viewEspresso.classList.remove('hidden');
+    closeBeanDetail();
+  }
+
+  function closeEspresso() {
+    viewEspresso.classList.add('hidden');
+    viewDashboard.classList.remove('hidden');
+  }
+
+  // ── Bean list ──
+  async function loadBeans() {
+    crosswordMsg('espresso-beans-msg', '', 'error');
+    try {
+      const snap = await db.collection(BEANS).get();
+      espressoBeans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderBeanList();
+    } catch (err) {
+      console.error('Error loading beans:', err);
+      crosswordMsg('espresso-beans-msg', 'Couldn\'t load the beans. Please try again.', 'error');
+    }
+  }
+
+  function renderBeanList() {
+    const showArchived = document.getElementById('espresso-show-archived').checked;
+    espressoBeanRows = espressoBeans
+      .filter(b => showArchived || b.active === true)
+      .sort((a, b) => (b.active === true) - (a.active === true)
+        || a.roaster.localeCompare(b.roaster)
+        || a.name.localeCompare(b.name));
+
+    document.getElementById('espresso-bean-list').innerHTML = espressoBeanRows.map((b, i) => `
+      <li>
+        <button type="button" class="solve-row espresso-bean-row" data-index="${i}">
+          <span class="espresso-bean-name">${escapeHtml(beanLabel(b))}${b.active === true ? '' : '<span class="espresso-archived-tag">Archived</span>'}</span>
+          <span class="espresso-recipe${b.current ? '' : ' espresso-no-recipe'}">${b.current ? escapeHtml(recipeLine(b.current)) : 'No recipe yet'}</span>
+        </button>
+      </li>`).join('');
+
+    const empty = document.getElementById('espresso-beans-empty');
+    empty.textContent = espressoBeans.length
+      ? 'No active beans — tick "Show archived" to see the old ones.'
+      : 'No beans yet — add your first bag. ☕';
+    empty.classList.toggle('hidden', espressoBeanRows.length > 0);
+  }
+
+  document.getElementById('espresso-bean-list').addEventListener('click', e => {
+    const row = e.target.closest('.solve-row');
+    if (row) openBeanDetail(espressoBeanRows[Number(row.dataset.index)]);
+  });
+
+  // ── Add / edit bean ──
+  function openBeanForm(bean) {
+    editingBean = bean;
+    crosswordMsg('espresso-bean-msg', '', 'error');
+    document.getElementById('espresso-bean-title').textContent = bean ? 'Edit bean' : 'Add bean';
+    document.getElementById('espresso-bean-roaster').value = bean ? bean.roaster : '';
+    document.getElementById('espresso-bean-name').value = bean ? bean.name : '';
+    document.getElementById('espresso-bean-roast').value = bean && bean.roastDate ? bean.roastDate : '';
+    const archive = document.getElementById('espresso-bean-archive');
+    archive.classList.toggle('hidden', !bean);
+    archive.textContent = bean && bean.active !== true ? 'Unarchive' : 'Archive';
+    const card = document.getElementById('espresso-bean-card');
+    card.classList.remove('hidden');
+    card.scrollIntoView({ block: 'nearest' });
+    document.getElementById('espresso-bean-roaster').focus();
+  }
+
+  function closeBeanForm() {
+    editingBean = null;
+    document.getElementById('espresso-bean-card').classList.add('hidden');
+  }
+
+  // Refetch whatever is on screen after a bean write; the note lands on the
+  // visible pane because the form it came from has just closed.
+  async function afterBeanWrite(note) {
+    closeBeanForm();
+    if (espressoBean) {
+      crosswordMsg('espresso-detail-msg', note, 'success');
+      await renderBeanDetail();
+    } else {
+      await loadBeans();
+      crosswordMsg('espresso-beans-msg', note, 'success');
+    }
+  }
+
+  async function saveBean(event) {
+    event.preventDefault();
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const roaster = cleanText(document.getElementById('espresso-bean-roaster').value);
+    const name = cleanText(document.getElementById('espresso-bean-name').value);
+    if (!roaster || !name) {
+      crosswordMsg('espresso-bean-msg', 'Give the bean a roaster and a name.', 'error');
+      return;
+    }
+    if (roaster.length > 60 || name.length > 60) {
+      crosswordMsg('espresso-bean-msg', 'Roaster and name are limited to 60 characters.', 'error');
+      return;
+    }
+    const roastDate = document.getElementById('espresso-bean-roast').value || null;
+
+    const button = document.getElementById('espresso-bean-save');
+    button.disabled = true;
+    try {
+      if (editingBean) {
+        await db.collection(BEANS).doc(editingBean.id).update({ roaster, name, roastDate, ...audit() });
+      } else {
+        await db.collection(BEANS).add({
+          roaster, name, roastDate,
+          active: true,
+          current: null,
+          createdBy: user.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          ...audit()
+        });
+      }
+    } catch (err) {
+      console.error('Error saving bean:', err);
+      crosswordMsg('espresso-bean-msg', 'Couldn\'t save the bean. Please try again.', 'error');
+      return;
+    } finally {
+      button.disabled = false;
+    }
+    await afterBeanWrite('Saved ✓');
+  }
+
+  async function toggleBeanArchived() {
+    const bean = editingBean;
+    if (!bean || !auth.currentUser) return;
+    const active = bean.active !== true;
+    try {
+      await db.collection(BEANS).doc(bean.id).update({ active, ...audit() });
+    } catch (err) {
+      console.error('Error archiving bean:', err);
+      crosswordMsg('espresso-bean-msg', 'Couldn\'t update the bean. Please try again.', 'error');
+      return;
+    }
+    await afterBeanWrite(active ? 'Unarchived ✓' : 'Archived ✓');
+  }
+
+  // ── Bean detail ──
+  function setEspressoPane(detail) {
+    document.getElementById('espresso-pane-list').classList.toggle('hidden', detail);
+    document.getElementById('espresso-pane-detail').classList.toggle('hidden', !detail);
+  }
+
+  function openBeanDetail(bean) {
+    espressoBean = bean;
+    espressoShots = [];
+    closeBeanForm();
+    ['espresso-detail-msg', 'espresso-shot-msg', 'espresso-shots-msg']
+      .forEach(id => crosswordMsg(id, '', 'error'));
+    document.getElementById('espresso-shot-list').innerHTML = '';
+    document.getElementById('espresso-shots-empty').classList.add('hidden');
+    renderBeanHeader();
+    prefillShotForm(bean.current); // overwritten by the newest shot once loaded
+    setEspressoPane(true);
+    renderBeanDetail({ prefill: true });
+  }
+
+  function closeBeanDetail() {
+    espressoBean = null;
+    closeBeanForm();
+    setEspressoPane(false);
+    loadBeans();
+  }
+
+  function renderBeanHeader() {
+    const bean = espressoBean;
+    document.getElementById('espresso-detail-title').textContent =
+      bean.active === true ? beanLabel(bean) : `${beanLabel(bean)} (archived)`;
+    document.getElementById('espresso-detail-roast').textContent =
+      bean.roastDate ? `Roasted ${friendlyDate(bean.roastDate)}` : '';
+    const current = document.getElementById('espresso-detail-current');
+    current.textContent = bean.current ? recipeLine(bean.current) : 'No current recipe yet';
+    current.classList.toggle('espresso-no-recipe', !bean.current);
+  }
+
+  // A form mid-edit is only overwritten when asked: opening a bean or logging
+  // a shot prefills, making a past shot current doesn't.
+  async function renderBeanDetail({ prefill = false } = {}) {
+    if (!espressoBean) return; // a write finished after the user left the bean
+    const id = espressoBean.id;
+    crosswordMsg('espresso-shots-msg', '', 'error');
+    try {
+      const [beanDoc, shotSnap] = await Promise.all([
+        db.collection(BEANS).doc(id).get(),
+        db.collection(SHOTS).where('beanId', '==', id).get()
+      ]);
+      if (!espressoBean || espressoBean.id !== id) return; // navigated away meanwhile
+      espressoBean = { id, ...beanDoc.data() };
+      espressoShots = shotSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => shotMillis(b) - shotMillis(a));
+      renderBeanHeader();
+      renderShotList();
+      if (prefill) prefillShotForm(espressoShots[0] || espressoBean.current);
+    } catch (err) {
+      console.error('Error loading shots:', err);
+      crosswordMsg('espresso-shots-msg', 'Couldn\'t load the shots. Please try again.', 'error');
+    }
+  }
+
+  function shotMillis(shot) {
+    return shot.pulledAt ? shot.pulledAt.toMillis() : 0;
+  }
+
+  function shotWhen(shot) {
+    if (!shot.pulledAt) return '';
+    const d = shot.pulledAt.toDate();
+    const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    return `${friendlyDate(localDateStr(d))}, ${time}`;
+  }
+
+  function renderShotList() {
+    const me = auth.currentUser ? auth.currentUser.uid : null;
+    const currentId = espressoBean.current ? espressoBean.current.shotId : null;
+    document.getElementById('espresso-shot-list').innerHTML = espressoShots.map((s, i) => {
+      const meta = [
+        shotWhen(s),
+        `${s.displayName}${s.uid === me ? ' (you)' : ''}`,
+        s.rating ? `${'★'.repeat(s.rating)}${'☆'.repeat(5 - s.rating)}` : ''
+      ].filter(Boolean).join(' · ');
+      return `
+      <li class="espresso-shot">
+        <span class="espresso-recipe">${escapeHtml(recipeLine(s))}</span>
+        ${s.id === currentId
+          ? '<span class="espresso-current-tag">✓ Current</span>'
+          : `<button type="button" class="espresso-secondary" data-index="${i}">Make current</button>`}
+        <span class="espresso-shot-meta">${escapeHtml(meta)}</span>
+        ${s.notes ? `<span class="espresso-shot-notes">${escapeHtml(s.notes)}</span>` : ''}
+      </li>`;
+    }).join('');
+    document.getElementById('espresso-shots-empty').classList.toggle('hidden', espressoShots.length > 0);
+  }
+
+  document.getElementById('espresso-shot-list').addEventListener('click', async e => {
+    const button = e.target.closest('button[data-index]');
+    if (!button || !espressoBean || !auth.currentUser) return;
+    const shot = espressoShots[Number(button.dataset.index)];
+    button.disabled = true;
+    crosswordMsg('espresso-shots-msg', '', 'error');
+    try {
+      await db.collection(BEANS).doc(espressoBean.id).update(currentPatch(shot.id, shot));
+    } catch (err) {
+      console.error('Error setting current recipe:', err);
+      button.disabled = false;
+      crosswordMsg('espresso-shots-msg', 'Couldn\'t update the recipe. Please try again.', 'error');
+      return;
+    }
+    await renderBeanDetail();
+  });
+
+  // ── Log a shot ──
+  function prefillShotForm(source) {
+    document.getElementById('espresso-shot-grind').value = source ? source.grind : '';
+    document.getElementById('espresso-shot-dose').value = source ? source.dose : '';
+    document.getElementById('espresso-shot-yield').value = source ? source.yield : '';
+    document.getElementById('espresso-shot-time').value = source ? formatSecondsToClock(source.timeSeconds) : '';
+    // Rating and notes describe one shot, so they never carry over
+    document.getElementById('espresso-shot-rating').value = '';
+    document.getElementById('espresso-shot-notes').value = '';
+    document.getElementById('espresso-shot-make-current').checked = false;
+  }
+
+  // The form as a shot's fields, or null after showing what's wrong. Optional
+  // fields are left off when blank, never written as '' or null.
+  function readShotForm() {
+    const fail = text => { crosswordMsg('espresso-shot-msg', text, 'error'); return null; };
+
+    const grind = parseGrind(document.getElementById('espresso-shot-grind').value);
+    if (grind === null) return fail('Grind must be a whole number from 1 to 16.');
+    const dose = parseGrams(document.getElementById('espresso-shot-dose').value, 5, 30);
+    if (dose === null) return fail('Dose must be between 5 and 30g.');
+    const yieldGrams = parseGrams(document.getElementById('espresso-shot-yield').value, 5, 100);
+    if (yieldGrams === null) return fail('Yield must be between 5 and 100g.');
+
+    const rawTime = document.getElementById('espresso-shot-time').value.trim();
+    const timeSeconds = parseClockToSeconds(rawTime);
+    if (timeSeconds === null) return fail(clockErrorMsg(rawTime));
+    if (timeSeconds < 1 || timeSeconds > 180) return fail('Time must be between 0:01 and 3:00.');
+
+    const shot = { dose, yield: yieldGrams, timeSeconds, grind };
+    const rating = document.getElementById('espresso-shot-rating').value;
+    if (rating) shot.rating = parseInt(rating, 10);
+    const notes = document.getElementById('espresso-shot-notes').value.trim();
+    if (notes.length > 280) return fail('Notes are limited to 280 characters.');
+    if (notes) shot.notes = notes;
+    return shot;
+  }
+
+  async function submitShot(event) {
+    event.preventDefault();
+    const user = auth.currentUser;
+    const bean = espressoBean;
+    if (!user || !bean) return;
+
+    const fields = readShotForm();
+    if (!fields) return;
+    const makeCurrent = document.getElementById('espresso-shot-make-current').checked;
+
+    const button = document.getElementById('espresso-shot-submit');
+    button.disabled = true;
+    try {
+      const shotRef = db.collection(SHOTS).doc();
+      const batch = db.batch();
+      batch.set(shotRef, {
+        beanId: bean.id,
+        uid: user.uid,
+        displayName: user.displayName || user.email,
+        pulledAt: firebase.firestore.FieldValue.serverTimestamp(),
+        ...fields
+      });
+      if (makeCurrent) {
+        batch.update(db.collection(BEANS).doc(bean.id), currentPatch(shotRef.id, fields));
+      }
+      await batch.commit();
+    } catch (err) {
+      console.error('Error logging shot:', err);
+      crosswordMsg('espresso-shot-msg', 'Couldn\'t log the shot. Please try again.', 'error');
+      return;
+    } finally {
+      button.disabled = false;
+    }
+    crosswordMsg('espresso-shot-msg', makeCurrent ? 'Logged — now the current recipe ✓' : 'Logged ✓', 'success');
+    await renderBeanDetail({ prefill: true });
   }
 </script>
 

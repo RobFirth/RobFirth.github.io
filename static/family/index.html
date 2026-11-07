@@ -1322,8 +1322,9 @@
       <h2 id="espresso-bean-title">Add bean</h2>
       <form class="crossword-form espresso-form" onsubmit="saveBean(event)">
         <label class="espresso-field espresso-field-text">Roaster
-          <input type="text" id="espresso-bean-roaster" maxlength="60" autocomplete="off">
+          <input type="text" id="espresso-bean-roaster" list="espresso-roaster-options" maxlength="60" autocomplete="off">
         </label>
+        <datalist id="espresso-roaster-options"></datalist>
         <label class="espresso-field espresso-field-text">Bean
           <input type="text" id="espresso-bean-name" maxlength="60" autocomplete="off">
         </label>
@@ -1354,12 +1355,11 @@
           <label class="espresso-field espresso-field-text">Process
             <input type="text" id="espresso-bean-process" list="espresso-process-options" maxlength="40" autocomplete="off">
           </label>
-          <datalist id="espresso-process-options">
-            <option value="washed"></option>
-            <option value="natural"></option>
-            <option value="honey"></option>
-            <option value="anaerobic"></option>
-          </datalist>
+          <datalist id="espresso-process-options"></datalist>
+          <label class="espresso-field espresso-field-text">Roast level
+            <input type="text" id="espresso-bean-roast-level" list="espresso-roast-options" maxlength="40" autocomplete="off">
+          </label>
+          <datalist id="espresso-roast-options"></datalist>
           <label class="espresso-field espresso-field-text">Varietals (comma-separated)
             <input type="text" id="espresso-bean-varietals" maxlength="260" autocomplete="off">
           </label>
@@ -2642,9 +2642,41 @@
     { key: 'region', input: 'espresso-bean-region', label: 'Region', max: 60 },
     { key: 'producer', input: 'espresso-bean-producer', label: 'Producer', max: 80 },
     { key: 'process', input: 'espresso-bean-process', label: 'Process', max: 40 },
+    { key: 'roastLevel', input: 'espresso-bean-roast-level', label: 'Roast level', max: 40 },
     { key: 'roasterNotes', input: 'espresso-bean-notes', label: 'Roaster notes', max: 200 }
   ];
   const ORIGIN_KEYS = [...ORIGIN_TEXT_FIELDS.map(f => f.key), 'altitudeMin', 'altitudeMax', 'varietals'];
+
+  // Fields that suggest what's been entered before, then these starting values
+  const BEAN_SUGGESTIONS = [
+    { key: 'roaster', list: 'espresso-roaster-options', defaults: [] },
+    { key: 'process', list: 'espresso-process-options', defaults: ['washed', 'natural', 'honey', 'anaerobic'] },
+    { key: 'roastLevel', list: 'espresso-roast-options', defaults: ['light', 'medium', 'medium-dark', 'dark'] }
+  ];
+
+  // Pure: most recently updated first, archived beans included, then the
+  // defaults. "dark" and "Dark" are one suggestion; the first spelling wins.
+  function suggestionsFor(beans, key, defaults) {
+    const millis = b => (b.updatedAt ? b.updatedAt.toMillis() : 0);
+    const used = [...beans].sort((a, b) => millis(b) - millis(a)).map(b => b[key]);
+    const distinct = new Map();
+    [...used, ...defaults]
+      .filter(v => typeof v === 'string' && v)
+      .forEach(v => { if (!distinct.has(v.toLowerCase())) distinct.set(v.toLowerCase(), v); });
+    return [...distinct.values()];
+  }
+
+  // Built with .value rather than innerHTML, as escapeHtml leaves quotes alone
+  function renderBeanSuggestions() {
+    BEAN_SUGGESTIONS.forEach(({ key, list, defaults }) => {
+      document.getElementById(list).replaceChildren(
+        ...suggestionsFor(espressoBeans, key, defaults).map(value => {
+          const option = document.createElement('option');
+          option.value = value;
+          return option;
+        }));
+    });
+  }
 
   // Three-state like parseSetter: a value, undefined (blank) or null (invalid).
   // Commas are dropped because the bean header prints altitude as 1,900m.
@@ -2667,11 +2699,16 @@
     return `${parts.join('–')}m`;
   }
 
-  // "Ethiopia · Guji · 1,900–2,200m · Washed · Heirloom", skipping empty parts
+  // Stored as typed; only the display capitalises, so "Dark Espresso" stays as printed
+  function capitalise(text) {
+    return text ? text[0].toUpperCase() + text.slice(1) : '';
+  }
+
+  // "Ethiopia · Guji · 1,900–2,200m · Washed · Dark · Heirloom", skipping empty parts
   function originLine(bean) {
-    const process = bean.process ? bean.process[0].toUpperCase() + bean.process.slice(1) : '';
     const varietals = Array.isArray(bean.varietals) ? bean.varietals.join(', ') : '';
-    return [bean.country, bean.region, bean.producer, formatAltitude(bean), process, varietals]
+    return [bean.country, bean.region, bean.producer, formatAltitude(bean),
+      capitalise(bean.process), capitalise(bean.roastLevel), varietals]
       .filter(Boolean)
       .join(' · ');
   }
@@ -2781,6 +2818,7 @@
     crosswordMsg('espresso-bean-msg', '', 'error');
     document.getElementById('espresso-bean-title').textContent = bean ? 'Edit bean' : 'Add bean';
     fillBeanForm(bean || {});
+    renderBeanSuggestions();
     const archive = document.getElementById('espresso-bean-archive');
     archive.classList.toggle('hidden', !bean);
     archive.textContent = bean && bean.active !== true ? 'Unarchive' : 'Archive';

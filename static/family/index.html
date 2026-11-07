@@ -34,6 +34,7 @@
        colourblind-safe lightness band against --bg-card (validated pair, ΔE > 100) */
     --chart-line-1: #3d8bf5;
     --chart-line-2: #d9761a;
+    --decaf: #b9dcff; /* pale blue, well clear of --accent so the tag reads as a label */
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -920,6 +921,16 @@
     letter-spacing: 1px;
     color: var(--text-dim);
     margin-left: 6px;
+  }
+
+  .espresso-tag-decaf {
+    display: inline-block;
+    background: var(--decaf);
+    color: var(--bg);
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    vertical-align: middle;
   }
 
   .espresso-recipe {
@@ -2563,10 +2574,10 @@
   }
 
   function beanTags(bean) {
-    return [bean.decaf === true ? 'Decaf' : '', bean.active === true ? '' : 'Archived']
-      .filter(Boolean)
-      .map(tag => `<span class="espresso-tag">${tag}</span>`)
-      .join('');
+    return [
+      bean.decaf === true ? '<span class="espresso-tag espresso-tag-decaf">Decaf</span>' : '',
+      bean.active === true ? '' : '<span class="espresso-tag">Archived</span>'
+    ].join('');
   }
 
   function cleanText(value) {

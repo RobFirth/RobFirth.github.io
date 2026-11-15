@@ -2,9 +2,10 @@
 // Games are self-contained modules registered below. A game gets only the ctx object.
 import { matchSets, pictureFor } from './data/words.js';
 import match from './games/match.js';
+import flashcards from './games/flashcards.js';
 
 // Registry: adding a game is one file, one import and one entry here.
-const GAMES = [match];
+const GAMES = [match, flashcards];
 
 // ── Firebase (public web config, duplicated from the family page by design) ──
 const firebaseConfig = {

@@ -55,3 +55,4 @@ Simple flat drawings made for this site (64×64 viewBox, palette colours). No th
 | `words/well.svg` | wishing well |
 | `card-back.svg` | card back pattern (swappable) |
 | `match.svg` | Match game icon |
+| `flashcards.svg` | Flashcards game icon |

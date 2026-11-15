@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFF8E7">
+<title>Play</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kids.css">
+</head>
+<body>
+
+<div id="view-loading" class="view view-center">
+  <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
+  <p class="sr-only">Loading</p>
+</div>
+
+<div id="view-signin" class="view view-center hidden">
+  <h1 class="big-title">Play</h1>
+  <button id="btn-signin" class="btn btn-primary btn-huge" type="button">Sign in</button>
+  <p id="signin-msg" class="message" role="alert"></p>
+</div>
+
+<div id="view-norole" class="view view-center hidden">
+  <p class="message message-big">Ask a grown-up to sign in again</p>
+  <button id="btn-norole-signout" class="btn btn-teal btn-huge" type="button">Sign out</button>
+</div>
+
+<div id="view-menu" class="view hidden">
+  <header class="menu-header">
+    <h1 id="hello" class="hello">Hello</h1>
+  </header>
+  <div id="game-tiles" class="tiles"></div>
+  <button id="btn-cog" class="cog" type="button" aria-label="Grown-ups: press and hold">
+    <svg class="cog-ring" viewBox="0 0 64 64" aria-hidden="true">
+      <circle class="ring-track" cx="32" cy="32" r="29"/>
+      <circle class="ring-fill" cx="32" cy="32" r="29" pathLength="100"/>
+    </svg>
+    <svg class="cog-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.5 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+  </button>
+</div>
+
+<div id="view-game" class="view hidden">
+  <button id="btn-home" class="home-btn" type="button" aria-label="Home">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 12h3v8h5v-6h4v6h5v-8h3z"/></svg>
+  </button>
+  <div id="game-root" class="game-root"></div>
+</div>
+
+<div id="view-sheet" class="view view-scroll hidden">
+  <button id="btn-sheet-home" class="home-btn" type="button" aria-label="Home">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 12h3v8h5v-6h4v6h5v-8h3z"/></svg>
+  </button>
+  <h1 class="sheet-title">Picture sheet</h1>
+  <div id="sheet-body"></div>
+</div>
+
+<div id="corner" class="corner hidden" role="dialog" aria-modal="true" aria-labelledby="corner-title">
+  <div class="corner-panel">
+    <h2 id="corner-title">Grown-ups</h2>
+    <button id="set-sound" class="btn btn-toggle" type="button" aria-pressed="true">Sound <span class="state"></span></button>
+    <button id="set-timer" class="btn btn-toggle" type="button" aria-pressed="true">Timer <span class="state"></span></button>
+    <a id="corner-family" class="btn btn-plain adult-only" href="/family/">Family page</a>
+    <button id="corner-sheet" class="btn btn-plain adult-only" type="button">Picture sheet</button>
+    <button id="corner-signout" class="btn btn-plain" type="button">Sign out</button>
+    <button id="corner-close" class="btn btn-primary" type="button">Done</button>
+  </div>
+</div>
+
+<!-- Firebase compat SDKs (app and auth only), same version as the family page -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script type="module" src="shell.js"></script>
+</body>
+</html>

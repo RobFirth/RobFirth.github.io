@@ -1369,6 +1369,8 @@
       Sign in with Google
     </button>
 
+    <button class="google-btn hidden" id="btn-signout-norole" type="button">Sign out</button>
+
     <p class="auth-footer-note">Only approved family email addresses can sign in.</p>
   </div>
 
@@ -1915,13 +1917,47 @@
   const greeting      = document.getElementById('greeting');
 
   // ── Auth state listener ──
-  auth.onAuthStateChanged(user => {
+  // Role: a custom claim on the ID token, refreshed once if missing
+  async function readRole(user) {
+    const claim = async () => (await user.getIdTokenResult()).claims.role;
+    try {
+      let role = await claim();
+      if (role !== 'adult' && role !== 'child') { await user.getIdToken(true); role = await claim(); }
+      return role === 'adult' || role === 'child' ? role : null;
+    } catch (err) {
+      console.warn('Could not read the account role:', err && (err.code || err.message));
+      return null;
+    }
+  }
+  const btnSignoutNorole = document.getElementById('btn-signout-norole');
+  btnSignoutNorole.addEventListener('click', () => signOut());
+  function showNoRole(on) {
+    btnSignin.classList.toggle('hidden', on);
+    btnSignoutNorole.classList.toggle('hidden', !on);
+  }
+
+  let authSeq = 0;
+  auth.onAuthStateChanged(async user => {
+    const seq = ++authSeq;
+    showNoRole(false);
     if (user) {
+      const role = await readRole(user);
+      if (seq !== authSeq) return; // signed out or changed meanwhile
+      if (role === 'child') { location.replace('/kids/'); return; }
+      if (role !== 'adult') {
+        showView('signin');
+        showError('Please sign out and sign in again.');
+        showNoRole(true);
+        userNav.innerHTML = '';
+        return;
+      }
+      hideError();
       showView('dashboard');
       const firstName = user.displayName ? user.displayName.split(' ')[0] : 'there';
       greeting.textContent = `Hey, ${firstName}`;
       renderUserPill(user);
     } else {
+      hideError();
       showView('signin');
       userNav.innerHTML = '';
     }

@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- Kids page at `/kids/`: a separate, touch-first page for tablets with its own bright look, sign-in, a games menu and a press-and-hold grown-ups corner (sound, timer, sign out). Not linked from the site nav and marked `noindex`.
+- First game, Match: a face-down memory game pairing a picture with its word, with word sets, 6/8/10 pairs, an optional timer and a celebration at the end. Nothing is saved.
+- Picture files for the game, with sources and licences in `static/kids/img/CREDITS.md`.
+
+### Changed
+- Family page: reads the account's role after sign-in. Child accounts go to `/kids/`; an account without a role is asked to sign out and sign in again.
+
+---
+
 ## [1.0.0] — 2026-03-21
 
 ### Summary

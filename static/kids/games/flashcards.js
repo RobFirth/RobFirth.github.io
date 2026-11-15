@@ -1,11 +1,13 @@
 // Flashcards: one sight word at a time, large. Not a quiz: no score, no timer, nothing recorded.
-// A grown-up (2 s press-and-hold) switches the mode and picks Focus words; both stay on this device.
+// A grown-up (2 s press-and-hold) switches the mode, picks Focus words and marks decks passed in class
+// with a rosette; all of it stays on this device.
 // Deck order and stepping are pure functions; the DOM code below only renders them.
 import { flashModes, flashDecks } from '../data/words.js';
 
 export const HOLD_MS = 2000;
 export const SWIPE_PX = 50;
 export const FOCUS = 'focus';
+export const ALL = 'all';
 
 // ── Pure logic ──
 export function shuffle(items, rand = Math.random) {
@@ -19,6 +21,11 @@ export function shuffle(items, rand = Math.random) {
 
 export const decksFor = (decks, mode) => decks.filter(d => d.mode === mode);
 export const wordsFor = (decks, mode) => decksFor(decks, mode).flatMap(d => d.words);
+// The deck a word belongs to in a mode (words are unique within a mode)
+export const groupOf = (decks, mode, word) => decksFor(decks, mode).find(d => d.words.includes(word)) || null;
+// Rosettes: ids of known decks, in deck order
+export const cleanRosettes = (decks, ids) => { const list = Array.isArray(ids) ? ids : []; return decks.map(d => d.id).filter(id => list.includes(id)); };
+export const toggleRosette = (decks, ids, id) => cleanRosettes(decks, ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
 
 // Focus words kept in deck order, only words of that mode, no repeats
 export const cleanFocus = (decks, mode, words) => {
@@ -34,8 +41,8 @@ export function readSettings(saved, decks = flashDecks, modes = flashModes) {
   const mode = modes.some(m => m.id === s.mode) ? s.mode : modes[0].id;
   const raw = s.focus && typeof s.focus === 'object' ? s.focus : {};
   const focus = Object.fromEntries(modes.map(m => [m.id, cleanFocus(decks, m.id, raw[m.id])]));
-  const deck = s.deck === FOCUS || decks.some(d => d.id === s.deck) ? s.deck : null;
-  return { mode, deck, focus };
+  const deck = s.deck === FOCUS || s.deck === ALL || decks.some(d => d.id === s.deck) ? s.deck : null;
+  return { mode, deck, focus, rosettes: cleanRosettes(decks, s.rosettes) };
 }
 
 // A run through a deck: index 0..n-1 is a card, index n is the end screen
@@ -52,7 +59,13 @@ const SPEAKER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" 
 const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></svg>';
 const COG = `<svg class="cog-ring" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="29"/><circle class="ring-fill" cx="32" cy="32" r="29" pathLength="100"/></svg>
 <svg class="cog-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.5 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>`;
-const FOCUS_COLOUR = '#1F2A44', FOCUS_TINT = '#FFFFFF';
+const ROSETTE = `<svg viewBox="0 0 48 56" aria-hidden="true"><g stroke="#1F2A44" stroke-width="2.5" stroke-linejoin="round">
+<path d="M15 30 8 53l8-4 5 7 5-22z" fill="#3D348B"/><path d="M33 30l7 23-8-4-5 7-5-22z" fill="#C73E3E"/>
+<path fill="#FFC93C" d="M24 2l4.2 4.6 6-1.6 1.6 6 6 1.6-1.6 6L44.8 23l-4.6 4.2 1.6 6-6 1.6-1.6 6-6-1.6L24 44l-4.2-4.6-6 1.6-1.6-6-6-1.6 1.6-6L3.2 23l4.6-4.2-1.6-6 6-1.6 1.6-6 6 1.6z"/>
+<circle cx="24" cy="23" r="9.5" fill="#FFFFFF"/></g><path d="M19.5 23.5l3 3 6-6.5" fill="none" stroke="#2A7A44" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const MIXED_COLOUR = '#1F2A44', MIXED_TINT = '#FFFFFF';
+// Hard stripes of the mode's deck colours, for the All tile's edge
+const stripes = decks => `linear-gradient(135deg, ${decks.map((d, i) => `${d.colour} ${(i * 100 / decks.length).toFixed(2)}% ${((i + 1) * 100 / decks.length).toFixed(2)}%`).join(', ')})`;
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -65,7 +78,7 @@ const plural = n => `${n} word${n === 1 ? '' : 's'}`;
 
 function mount(container, ctx) {
   let prefs = readSettings(ctx.settings.load());
-  const store = () => ctx.settings.save({ mode: prefs.mode, deck: prefs.deck, focus: prefs.focus });
+  const store = () => ctx.settings.save({ mode: prefs.mode, deck: prefs.deck, focus: prefs.focus, rosettes: prefs.rosettes });
   const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
   const speakable = () => { try { return !!ctx.settings.sound && !!ctx.canSpeak(); } catch (e) { return false; } };
 
@@ -80,7 +93,8 @@ function mount(container, ctx) {
 
   const modeLabel = id => (flashModes.find(m => m.id === id) || flashModes[0]).label;
   const deckById = id => {
-    if (id === FOCUS) return { id: FOCUS, label: 'Focus', colour: FOCUS_COLOUR, tint: FOCUS_TINT, words: prefs.focus[prefs.mode] };
+    if (id === FOCUS) return { id: FOCUS, label: 'Focus', colour: MIXED_COLOUR, tint: MIXED_TINT, words: prefs.focus[prefs.mode], mixed: true };
+    if (id === ALL) return { id: ALL, label: 'All', colour: MIXED_COLOUR, tint: MIXED_TINT, words: wordsFor(flashDecks, prefs.mode), mixed: true };
     return flashDecks.find(d => d.id === id && d.mode === prefs.mode) || null;
   };
 
@@ -97,17 +111,20 @@ function mount(container, ctx) {
 
     const tiles = el('div', 'flash-decks');
     const focusWords = prefs.focus[prefs.mode];
-    const decks = [...(focusWords.length ? [deckById(FOCUS)] : []), ...decksFor(flashDecks, prefs.mode)];
+    const decks = [...(focusWords.length ? [deckById(FOCUS)] : []), ...decksFor(flashDecks, prefs.mode), deckById(ALL)];
     tiles.append(...decks.map(deck => {
-      const b = button('deck-tile' + (deck.id === FOCUS ? ' focus-tile' : ''));
+      const b = button('deck-tile' + (deck.id === FOCUS ? ' focus-tile' : '') + (deck.id === ALL ? ' all-tile' : ''));
       b.dataset.deck = deck.id;
       b.style.setProperty('--deck', deck.colour);
       b.style.setProperty('--tint', deck.tint);
       if (deck.id === prefs.deck) { b.classList.add('last'); b.setAttribute('aria-current', 'true'); }
       const name = el('span', 'deck-name', deck.label);
       if (deck.id === FOCUS) { const s = el('span', 'deck-star'); s.innerHTML = STAR; name.prepend(s); }
+      if (deck.id === ALL) b.style.setProperty('--stripes', stripes(decksFor(flashDecks, prefs.mode)));
       b.append(name, el('span', 'deck-count', plural(deck.words.length)));
-      b.setAttribute('aria-label', `${deck.label}, ${plural(deck.words.length)}`);
+      const passed = prefs.rosettes.includes(deck.id);
+      if (passed) { const r = el('span', 'rosette'); r.innerHTML = ROSETTE; b.append(r); }
+      b.setAttribute('aria-label', `${deck.label}, ${plural(deck.words.length)}${passed ? ', passed in class' : ''}`);
       b.addEventListener('click', () => { prefs.deck = deck.id; store(); play(deck.id); });
       return b;
     }));
@@ -152,7 +169,20 @@ function mount(container, ctx) {
     const render = () => {
       modes.querySelectorAll('.mode-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === prefs.mode)));
       const focus = prefs.focus[prefs.mode];
-      words.replaceChildren(...decksFor(flashDecks, prefs.mode).map(deck => {
+      const rosettes = el('div', 'rosette-toggles');
+      rosettes.append(...decksFor(flashDecks, prefs.mode).map(deck => {
+        const b = button('rosette-btn');
+        b.dataset.deck = deck.id;
+        b.style.setProperty('--deck', deck.colour);
+        b.style.setProperty('--tint', deck.tint);
+        const on = prefs.rosettes.includes(deck.id);
+        b.setAttribute('aria-pressed', String(on));
+        const icon = el('span', 'rosette-icon'); icon.innerHTML = ROSETTE;
+        b.append(icon, el('span', '', deck.label));
+        b.addEventListener('click', () => { prefs.rosettes = toggleRosette(flashDecks, prefs.rosettes, deck.id); store(); render(); });
+        return b;
+      }));
+      const groups = decksFor(flashDecks, prefs.mode).map(deck => {
         const group = el('div', 'word-group');
         group.style.setProperty('--deck', deck.colour);
         const chips = el('div', 'word-chips');
@@ -169,7 +199,11 @@ function mount(container, ctx) {
         }));
         group.append(el('h4', 'word-group-label', deck.label), chips);
         return group;
-      }));
+      });
+      const top = words.scrollTop;
+      words.replaceChildren(el('h3', 'flash-section-title', 'Passed in class'), rosettes,
+        el('h3', 'flash-section-title', 'Focus words'), el('p', 'flash-hint', 'Tap words to practise them in a Focus deck.'), ...groups);
+      words.scrollTop = top;
       clear.disabled = !focus.length;
     };
     flashModes.forEach(m => {
@@ -190,8 +224,7 @@ function mount(container, ctx) {
 
     const btns = el('div', 'flash-panel-buttons');
     btns.append(clear, done);
-    panel.append(title, modes, el('h3', 'flash-focus-title', 'Focus words'),
-      el('p', 'flash-hint', 'Tap words to practise them in a Focus deck.'), words, btns);
+    panel.append(title, modes, words, btns);
     overlay.append(panel);
     render();
     root.append(overlay);
@@ -250,6 +283,7 @@ function mount(container, ctx) {
     const render = dir => {
       if (isEnd(run)) { showEnd(); return; }
       word.textContent = run.words[run.index];
+      if (deck.mixed) { const g = groupOf(flashDecks, prefs.mode, run.words[run.index]); wrap.style.setProperty('--deck', g ? g.colour : deck.colour); }
       card.setAttribute('aria-label', `${run.words[run.index]}. Next card`);
       count.textContent = counter(run);
       backBtn.disabled = !canBack(run);

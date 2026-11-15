@@ -1033,6 +1033,26 @@
     color: var(--success-text);
   }
 
+  /* Current tag or Make current, then Edit and Delete on your own shots */
+  .espresso-shot-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .espresso-danger { color: var(--error-text); border-color: var(--error-border); }
+  .espresso-danger:hover { color: var(--error-text); border-color: var(--error-text); }
+
+  /* Edit scrolls the form into view; keep its heading clear of the sticky nav */
+  #espresso-shot-title { scroll-margin-top: 110px; }
+  #espresso-shot-hint { margin: -6px 0 12px; }
+
+  /* The shot loaded into the form above */
+  .espresso-shot-editing { box-shadow: inset 3px 0 0 var(--accent); padding-left: 10px; }
+
+  .espresso-shot-confirm .espresso-shot-meta { color: var(--text); }
+
   /* ── DAILY TRACKER ──
      Cards, tabs, tiles, rows and form fields are the crossword and espresso
      classes; only what's specific to the tracker is defined here. */
@@ -1696,7 +1716,8 @@
       </div>
 
       <div class="crossword-card">
-        <h2>Log a shot</h2>
+        <h2 id="espresso-shot-title">Log a shot</h2>
+        <p id="espresso-shot-hint" class="crossword-hint"></p>
         <form class="crossword-form espresso-form" onsubmit="submitShot(event)">
           <label class="espresso-field">Grind (1–16)
             <input type="text" id="espresso-shot-grind" inputmode="numeric" maxlength="2" autocomplete="off">
@@ -1728,6 +1749,7 @@
             Make this the current recipe
           </label>
           <button type="submit" class="crossword-submit" id="espresso-shot-submit">Log shot</button>
+          <button type="button" class="espresso-secondary hidden" id="espresso-shot-cancel" onclick="cancelShotEdit()">Cancel</button>
         </form>
         <p id="espresso-shot-msg" class="form-msg"></p>
       </div>
@@ -3113,6 +3135,8 @@
   let espressoBean = null;     // the bean open in detail, null on the list
   let espressoShots = [];      // that bean's shots, newest first
   let editingBean = null;      // bean in the form, null when adding
+  let editingShot = null;      // own shot in the shot form, null when logging a new one
+  let confirmingShotId = null; // shot whose row is asking "Delete this shot?"
 
   wireClockInput(document.getElementById('espresso-shot-time'));
 
@@ -3448,6 +3472,9 @@
   function openBeanDetail(bean) {
     espressoBean = bean;
     espressoShots = [];
+    editingShot = null;
+    confirmingShotId = null;
+    syncShotForm();
     closeBeanForm();
     ['espresso-detail-msg', 'espresso-shot-msg', 'espresso-shots-msg']
       .forEach(id => crosswordMsg(id, '', 'error'));
@@ -3461,6 +3488,9 @@
 
   function closeBeanDetail() {
     espressoBean = null;
+    editingShot = null;
+    confirmingShotId = null;
+    syncShotForm();
     closeBeanForm();
     setEspressoPane(false);
     loadBeans();
@@ -3495,9 +3525,12 @@
       espressoShots = shotSnap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => shotMillis(b) - shotMillis(a));
+      // The shot in the form may have gone, or stopped being the current recipe
+      if (editingShot) editingShot = espressoShots.find(s => s.id === editingShot.id) || null;
       renderBeanHeader();
       renderShotList();
-      if (prefill) prefillShotForm(espressoShots[0] || espressoBean.current);
+      if (prefill && !editingShot) prefillShotForm(espressoShots[0] || espressoBean.current);
+      syncShotForm();
     } catch (err) {
       console.error('Error loading shots:', err);
       crosswordMsg('espresso-shots-msg', 'Couldn\'t load the shots. Please try again.', 'error');
@@ -3515,21 +3548,46 @@
     return `${friendlyDate(localDateStr(d))}, ${time}`;
   }
 
+  function isCurrentShot(shot) {
+    return !!(espressoBean && espressoBean.current && espressoBean.current.shotId === shot.id);
+  }
+
+  // Your own shots can be edited and deleted; the rules refuse anyone else's.
+  // Buttons carry an action and an index into espressoShots, never an id.
   function renderShotList() {
     const me = auth.currentUser ? auth.currentUser.uid : null;
-    const currentId = espressoBean.current ? espressoBean.current.shotId : null;
     document.getElementById('espresso-shot-list').innerHTML = espressoShots.map((s, i) => {
       const meta = [
         shotWhen(s),
         `${s.displayName}${s.uid === me ? ' (you)' : ''}`,
         s.rating ? `${'★'.repeat(s.rating)}${'☆'.repeat(5 - s.rating)}` : ''
       ].filter(Boolean).join(' · ');
-      return `
-      <li class="espresso-shot">
+      const current = isCurrentShot(s);
+      if (s.id === confirmingShotId) {
+        return `
+      <li class="espresso-shot espresso-shot-confirm">
         <span class="espresso-recipe">${escapeHtml(recipeLine(s))}</span>
-        ${s.id === currentId
-          ? '<span class="espresso-current-tag">✓ Current</span>'
-          : `<button type="button" class="espresso-secondary" data-index="${i}">Make current</button>`}
+        <span class="espresso-shot-actions">
+          <button type="button" class="espresso-secondary espresso-danger" data-action="delete" data-index="${i}">Delete</button>
+          <button type="button" class="espresso-secondary" data-action="keep" data-index="${i}">Keep</button>
+        </span>
+        <span class="espresso-shot-meta">${current
+          ? 'Delete this shot? It\'s the current recipe, so this bean will have none until you pick another.'
+          : 'Delete this shot? This can\'t be undone.'}</span>
+      </li>`;
+      }
+      const editing = editingShot && editingShot.id === s.id;
+      return `
+      <li class="espresso-shot${editing ? ' espresso-shot-editing' : ''}">
+        <span class="espresso-recipe">${escapeHtml(recipeLine(s))}</span>
+        <span class="espresso-shot-actions">
+          ${current
+            ? '<span class="espresso-current-tag">✓ Current</span>'
+            : `<button type="button" class="espresso-secondary" data-action="current" data-index="${i}">Make current</button>`}
+          ${s.uid === me ? `
+          <button type="button" class="espresso-secondary" data-action="edit" data-index="${i}">Edit</button>
+          <button type="button" class="espresso-secondary" data-action="ask-delete" data-index="${i}">Delete</button>` : ''}
+        </span>
         <span class="espresso-shot-meta">${escapeHtml(meta)}</span>
         ${s.notes ? `<span class="espresso-shot-notes">${escapeHtml(s.notes)}</span>` : ''}
       </li>`;
@@ -3538,21 +3596,137 @@
   }
 
   document.getElementById('espresso-shot-list').addEventListener('click', async e => {
-    const button = e.target.closest('button[data-index]');
-    if (!button || !espressoBean || !auth.currentUser) return;
+    const button = e.target.closest('button[data-action]');
+    const user = auth.currentUser;
+    if (!button || !espressoBean || !user) return;
     const shot = espressoShots[Number(button.dataset.index)];
-    button.disabled = true;
+    if (!shot) return;
+    const action = button.dataset.action;
     crosswordMsg('espresso-shots-msg', '', 'error');
-    try {
-      await db.collection(BEANS).doc(espressoBean.id).update(currentPatch(shot.id, shot));
-    } catch (err) {
-      console.error('Error setting current recipe:', err);
-      button.disabled = false;
-      crosswordMsg('espresso-shots-msg', 'Couldn\'t update the recipe. Please try again.', 'error');
+
+    if (action === 'current') {
+      button.disabled = true;
+      try {
+        await db.collection(BEANS).doc(espressoBean.id).update(currentPatch(shot.id, shot));
+      } catch (err) {
+        console.error('Error setting current recipe:', err);
+        button.disabled = false;
+        crosswordMsg('espresso-shots-msg', 'Couldn\'t update the recipe. Please try again.', 'error');
+        return;
+      }
+      await renderBeanDetail();
       return;
     }
-    await renderBeanDetail();
+
+    if (shot.uid !== user.uid) return; // only your own shots from here on
+    if (action === 'edit') {
+      startShotEdit(shot);
+    } else if (action === 'ask-delete') {
+      confirmingShotId = shot.id;
+      renderShotList();
+    } else if (action === 'keep') {
+      confirmingShotId = null;
+      renderShotList();
+    } else if (action === 'delete') {
+      await deleteShot(shot, button);
+    }
   });
+
+  // ── Edit or delete a shot ──
+  // The log form doubles as the editor. Heading, button, hint and the
+  // make-current box all follow editingShot.
+  function syncShotForm() {
+    const editing = !!editingShot;
+    const locked = editing && isCurrentShot(editingShot);
+    document.getElementById('espresso-shot-title').textContent = editing ? 'Edit shot' : 'Log a shot';
+    document.getElementById('espresso-shot-submit').textContent = editing ? 'Save changes' : 'Log shot';
+    document.getElementById('espresso-shot-cancel').classList.toggle('hidden', !editing);
+    document.getElementById('espresso-shot-hint').textContent = !editing ? ''
+      : `Changing the shot from ${shotWhen(editingShot)}.${locked ? ' It\'s the current recipe, so that changes too.' : ''}`;
+    // An edit to the current shot always carries through to the bean
+    const box = document.getElementById('espresso-shot-make-current');
+    if (locked) box.checked = true;
+    else if (box.disabled) box.checked = false;
+    box.disabled = locked;
+  }
+
+  function startShotEdit(shot) {
+    editingShot = shot;
+    confirmingShotId = null;
+    prefillShotForm(shot);
+    document.getElementById('espresso-shot-rating').value = shot.rating ? String(shot.rating) : '';
+    document.getElementById('espresso-shot-notes').value = shot.notes || '';
+    crosswordMsg('espresso-shot-msg', '', 'error');
+    syncShotForm();
+    renderShotList();
+    const title = document.getElementById('espresso-shot-title');
+    if (title.scrollIntoView) title.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    document.getElementById('espresso-shot-grind').focus({ preventScroll: true });
+  }
+
+  function cancelShotEdit() {
+    editingShot = null;
+    crosswordMsg('espresso-shot-msg', '', 'error');
+    prefillShotForm(espressoShots[0] || (espressoBean && espressoBean.current));
+    syncShotForm();
+    renderShotList();
+  }
+
+  // Shot and, when it is or becomes the current recipe, the bean in one batch.
+  // A cleared rating or note is removed, never written as '' or null.
+  async function saveShotEdit(fields, makeCurrent) {
+    const shot = editingShot;
+    const bean = espressoBean;
+    const carry = makeCurrent || isCurrentShot(shot);
+    const gone = firebase.firestore.FieldValue.delete();
+    const button = document.getElementById('espresso-shot-submit');
+    button.disabled = true;
+    try {
+      const batch = db.batch();
+      batch.update(db.collection(SHOTS).doc(shot.id), {
+        ...recipeOf(fields),
+        rating: 'rating' in fields ? fields.rating : gone,
+        notes: 'notes' in fields ? fields.notes : gone
+      });
+      if (carry) batch.update(db.collection(BEANS).doc(bean.id), currentPatch(shot.id, fields));
+      await batch.commit();
+    } catch (err) {
+      console.error('Error saving shot:', err);
+      crosswordMsg('espresso-shot-msg', 'Couldn\'t save the changes. Please try again.', 'error');
+      return;
+    } finally {
+      button.disabled = false;
+    }
+    editingShot = null;
+    crosswordMsg('espresso-shot-msg', carry ? 'Saved — the current recipe is updated ✓' : 'Saved ✓', 'success');
+    await renderBeanDetail({ prefill: true });
+  }
+
+  // Deleting the current shot clears the bean's recipe in the same batch, so
+  // the bean never points at a shot that has gone.
+  async function deleteShot(shot, button) {
+    const bean = espressoBean;
+    button.disabled = true;
+    try {
+      const batch = db.batch();
+      batch.delete(db.collection(SHOTS).doc(shot.id));
+      if (isCurrentShot(shot)) batch.update(db.collection(BEANS).doc(bean.id), { current: null, ...audit() });
+      await batch.commit();
+    } catch (err) {
+      console.error('Error deleting shot:', err);
+      button.disabled = false;
+      crosswordMsg('espresso-shots-msg', 'Couldn\'t delete the shot. Please try again.', 'error');
+      return;
+    }
+    confirmingShotId = null;
+    if (editingShot && editingShot.id === shot.id) {
+      editingShot = null;
+      crosswordMsg('espresso-shot-msg', '', 'error');
+    }
+    // Refill the form from what is now the newest shot, unless another edit is open
+    await renderBeanDetail({ prefill: !editingShot });
+    crosswordMsg('espresso-shots-msg', 'Shot deleted ✓', 'success');
+  }
 
   // ── Log a shot ──
   function prefillShotForm(source) {
@@ -3563,7 +3737,9 @@
     // Rating and notes describe one shot, so they never carry over
     document.getElementById('espresso-shot-rating').value = '';
     document.getElementById('espresso-shot-notes').value = '';
-    document.getElementById('espresso-shot-make-current').checked = false;
+    const box = document.getElementById('espresso-shot-make-current');
+    box.checked = false;
+    box.disabled = false;
   }
 
   // The form as a shot's fields, or null after showing what's wrong. Optional
@@ -3601,6 +3777,7 @@
     const fields = readShotForm();
     if (!fields) return;
     const makeCurrent = document.getElementById('espresso-shot-make-current').checked;
+    if (editingShot) return saveShotEdit(fields, makeCurrent);
 
     const button = document.getElementById('espresso-shot-submit');
     button.disabled = true;

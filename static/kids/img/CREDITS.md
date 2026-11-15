@@ -19,7 +19,7 @@ Graphics from [Twemoji](https://github.com/jdecked/twemoji) (release v17.0.3), C
 | `words/sock.svg` | `1f9e6.svg` |
 | `words/tick.svg` | `2714.svg` |
 | `words/sun.svg` | `2600.svg` |
-| `words/hen.svg` | `1f414.svg` |
+| `words/bin.svg` | `1f5d1.svg` |
 | `words/bus.svg` | `1f68c.svg` |
 | `words/bed.svg` | `1f6cf.svg` |
 | `words/rat.svg` | `1f400.svg` |
@@ -31,7 +31,7 @@ Graphics from [Twemoji](https://github.com/jdecked/twemoji) (release v17.0.3), C
 | `words/hat.svg` | `1f3a9.svg` |
 | `words/bell.svg` | `1f514.svg` |
 | `words/kiss.svg` | `1f48b.svg` |
-| `words/pill.svg` | `1f48a.svg` |
+| `words/ball.svg` | `26bd.svg` |
 
 ## Drawn for this site
 

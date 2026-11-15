@@ -16,7 +16,17 @@ export function shuffle(items, rand = Math.random) {
   return a;
 }
 
-export const sizesFor = set => SIZES.filter(n => set.words.length >= n);
+// Sizes a pool of words can fill (a set's words, or several sets combined)
+export const sizesFor = words => SIZES.filter(n => words.length >= n);
+
+// Words from the chosen sets, in set order, no repeats
+export const poolFor = (sets, ids) => [...new Set(sets.filter(s => ids.includes(s.id)).flatMap(s => s.words))];
+
+// Tap a set tile: add it, or remove it unless it is the last one chosen. Keeps set order.
+export function toggleSet(sets, ids, id) {
+  const next = ids.includes(id) ? (ids.length > 1 ? ids.filter(x => x !== id) : ids) : [...ids, id];
+  return sets.map(s => s.id).filter(x => next.includes(x));
+}
 
 // 2N cards: each picked word once as a picture and once as a word
 export function deal(words, n, rand = Math.random) {
@@ -72,10 +82,15 @@ function mount(container, ctx) {
   const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
 
   const saved = ctx.settings.load();
-  let setId = matchSets.some(s => s.id === saved.set) ? saved.set : matchSets[0].id;
+  // Chosen sets; an older single-set setting carries over
+  const known = id => matchSets.some(s => s.id === id);
+  let chosen = (Array.isArray(saved.sets) ? saved.sets : [saved.set]).filter(known);
+  if (!chosen.length) chosen = [matchSets[0].id];
+  chosen = matchSets.map(s => s.id).filter(id => chosen.includes(id));
   let size = SIZES.includes(saved.size) ? saved.size : SIZES[0];
-  const currentSet = () => matchSets.find(s => s.id === setId);
-  const fitSize = () => { const ok = sizesFor(currentSet()); if (!ok.includes(size)) size = ok.filter(n => n <= size).pop() || ok[0]; };
+  const pool = () => poolFor(matchSets, chosen);
+  const allChosen = () => chosen.length === matchSets.length;
+  const fitSize = () => { const ok = sizesFor(pool()); if (!ok.includes(size)) size = ok.filter(n => n <= size).pop() || ok[0]; };
 
   const root = el('div', 'match');
   container.replaceChildren(root);
@@ -98,8 +113,8 @@ function mount(container, ctx) {
     const sets = el('div', 'match-sets');
     const sizes = el('div', 'match-sizes');
     const render = () => {
-      sets.querySelectorAll('.set-tile').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.set === setId)));
-      sizes.replaceChildren(...sizesFor(currentSet()).map(n => {
+      sets.querySelectorAll('.set-tile').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.set === 'mix' ? allChosen() : chosen.includes(b.dataset.set))));
+      sizes.replaceChildren(...sizesFor(pool()).map(n => {
         const b = el('button', 'size-btn', `${n} pairs`);
         b.type = 'button'; b.dataset.size = n;
         b.setAttribute('aria-pressed', String(n === size));
@@ -114,12 +129,21 @@ function mount(container, ctx) {
       const pics = el('span', 'set-pics');
       set.words.slice(0, 3).forEach(w => { const img = el('img'); img.src = pictureFor(w); img.alt = ''; pics.append(img); });
       b.append(el('span', 'set-label', set.label), pics);
-      b.addEventListener('click', () => { setId = set.id; fitSize(); render(); });
+      b.addEventListener('click', () => { chosen = toggleSet(matchSets, chosen, set.id); fitSize(); render(); });
       sets.append(b);
     });
+    // Mix: every set at once
+    const mix = el('button', 'set-tile mix-tile');
+    mix.type = 'button'; mix.dataset.set = 'mix';
+    mix.setAttribute('aria-label', 'mix: all the sounds');
+    const mixPics = el('span', 'set-pics');
+    matchSets.slice(0, 3).forEach(s => { const img = el('img'); img.src = pictureFor(s.words[0]); img.alt = ''; mixPics.append(img); });
+    mix.append(el('span', 'set-label', 'mix'), mixPics);
+    mix.addEventListener('click', () => { chosen = matchSets.map(s => s.id); fitSize(); render(); });
+    sets.append(mix);
     const start = el('button', 'btn btn-primary btn-huge match-start', 'Start');
     start.type = 'button';
-    start.addEventListener('click', () => { ctx.settings.save({ set: setId, size }); play(); });
+    start.addEventListener('click', () => { ctx.settings.save({ sets: chosen, size }); play(); });
     wrap.append(el('h2', '', 'Choose a set'), sets, el('h2', '', 'Choose a size'), sizes, start);
     render();
     root.replaceChildren(wrap);
@@ -128,8 +152,7 @@ function mount(container, ctx) {
   // ── Board ──
   function play() {
     stopPlay();
-    const set = currentSet();
-    let state = newGame(deal(set.words, size));
+    let state = newGame(deal(pool(), size));
     const total = size;
     let startedAt = 0;
 

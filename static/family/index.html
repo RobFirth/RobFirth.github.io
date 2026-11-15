@@ -46,6 +46,11 @@
     --chart-setter-4: #3498db;
     --chart-setter-other: #aeb6bf;
     --decaf: #b9dcff; /* pale blue, well clear of --accent so the tag reads as a label */
+    /* Tracker levels: one hue, light to dark, interpolated for however many
+       levels the config has. Lightness alone separates them, so it's
+       colourblind safe; the dark end is still >= 3:1 against --bg-card. */
+    --chart-seq-light: #d6e8ff;
+    --chart-seq-dark: #2f6fd6;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1025,6 +1030,269 @@
     color: var(--success-text);
   }
 
+  /* ── DAILY TRACKER ──
+     Cards, tabs, tiles, rows and form fields are the crossword and espresso
+     classes; only what's specific to the tracker is defined here. */
+  #view-tracker {
+    max-width: 680px;
+    width: 100%;
+    margin: 0 auto;
+    align-self: flex-start;
+  }
+
+  #view-tracker .crossword-header h1 { overflow-wrap: anywhere; } /* config title, up to 40 */
+
+  .tracker-levels {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+
+  .tracker-level {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    min-height: 64px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: var(--font-body);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .tracker-level:hover,
+  .tracker-level:focus-visible {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    outline: none;
+  }
+
+  .tracker-level-label {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .tracker-level-detail {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .tracker-form {
+    margin-top: 14px;
+    padding: 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .tracker-form .espresso-field input,
+  .tracker-form .espresso-field textarea {
+    background: var(--bg-card);
+  }
+
+  .tracker-chip-group {
+    flex: 1 1 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tracker-group-name {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .tracker-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .tracker-chip {
+    max-width: 100%;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    padding: 6px 12px;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+
+  .tracker-chip[aria-pressed="true"] {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .tracker-actions {
+    flex: 1 1 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tracker-confirm {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--error-text);
+  }
+
+  .tracker-list { list-style: none; }
+
+  .tracker-event-row { flex-wrap: wrap; gap: 4px 12px; }
+
+  .tracker-ev-time {
+    font-family: var(--font-display);
+    color: var(--accent);
+  }
+
+  .tracker-ev-main {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .tracker-ev-meta {
+    flex: 1 1 100%;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .tracker-day-status {
+    font-family: var(--font-display);
+    color: var(--success-text);
+  }
+
+  .tracker-day-detail {
+    margin-top: 6px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .tracker-day-detail + .tracker-actions,
+  .tracker-day-status + .tracker-actions { margin-top: 12px; }
+
+  /* A past day, opened from Missed days or the Days list */
+  .tracker-editor {
+    margin-top: 14px;
+    padding: 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .tracker-editor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .tracker-editor-head h3 {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .tracker-editor .tracker-level,
+  .tracker-editor .tracker-form { background: var(--bg-card); }
+
+  .tracker-editor .tracker-form .espresso-field input,
+  .tracker-editor .tracker-form .espresso-field textarea { background: var(--bg); }
+
+  .tracker-sub {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .tracker-sub h3 {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .tracker-stats .stat-value { overflow-wrap: anywhere; }
+
+  .tracker-stat-note {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+  }
+
+  .tracker-stat-note:empty { display: none; }
+
+  .tracker-day-row { flex-wrap: wrap; gap: 2px 12px; }
+
+  .tracker-day-row .solve-meta { overflow-wrap: anywhere; min-width: 0; }
+
+  .tracker-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 0.85rem;
+  }
+
+  .tracker-table th {
+    font-weight: 500;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    text-align: right;
+    padding: 0 0 8px 8px;
+  }
+
+  .tracker-table td {
+    font-family: var(--font-display);
+    text-align: right;
+    padding: 8px 0 8px 8px;
+    border-top: 1px solid var(--border);
+    overflow-wrap: anywhere;
+  }
+
+  .tracker-table th:first-child,
+  .tracker-table td:first-child {
+    text-align: left;
+    padding-left: 0;
+    font-family: var(--font-body);
+  }
+
+  .tracker-table td.tracker-not-enough {
+    font-family: var(--font-body);
+    color: var(--text-dim);
+    font-size: 0.78rem;
+  }
+
+  .tracker-table-intro { margin-bottom: 12px; }
+
+  .tracker-caption { margin-top: 12px; }
+
   /* ── UTILITIES ── */
   .hidden { display: none !important; }
 
@@ -1099,6 +1367,13 @@
         <span class="card-icon">☕</span>
         <h3>Espresso</h3>
         <p>Bean recipes and shot log.</p>
+      </div>
+
+      <!-- Shown only to a member with a tracker config (see refreshTrackerCard) -->
+      <div class="app-card hidden" id="tracker-card" onclick="openTracker()" style="cursor:pointer;">
+        <span class="card-icon">📈</span>
+        <h3>Daily tracker</h3>
+        <p>Log and review</p>
       </div>
     </div>
 
@@ -1463,6 +1738,111 @@
     </div>
   </div>
 
+  <!-- DAILY TRACKER — private to its owner; every label comes from their config -->
+  <div id="view-tracker" class="hidden">
+    <button onclick="closeTracker()" style="background:none; border:1px solid rgba(255,255,255,0.3); color:white; padding:8px 16px; border-radius:6px; cursor:pointer; margin-bottom:20px; font-family:inherit;">← Back to dashboard</button>
+
+    <div class="crossword-header">
+      <h1 id="tracker-title">📈 Daily tracker</h1>
+      <p id="tracker-date"></p>
+    </div>
+
+    <div class="crossword-tabs" role="tablist">
+      <button type="button" class="crossword-tab active" id="tracker-tab-today" role="tab" onclick="switchTrackerTab('today')">Today</button>
+      <button type="button" class="crossword-tab" id="tracker-tab-trends" role="tab" onclick="switchTrackerTab('trends')">Trends</button>
+    </div>
+
+    <!-- Learned from earlier events; shared by every event form -->
+    <datalist id="tracker-text-options"></datalist>
+    <p id="tracker-msg" class="form-msg"></p>
+
+    <div id="tracker-pane-today">
+      <!-- Log an event / Today's events / Check-in, rendered by renderTrackerPanel('today') -->
+      <div id="tracker-today" data-panel="today"></div>
+
+      <div class="crossword-card hidden" id="tracker-missed-card">
+        <h2>Missed days</h2>
+        <ul id="tracker-missed-list" class="solves-list"></ul>
+        <div id="tracker-missed-editor" data-panel="editor"></div>
+      </div>
+    </div>
+
+    <div id="tracker-pane-trends" class="hidden">
+      <div class="crossword-card">
+        <div class="stats-grid stats-grid-4 tracker-stats">
+          <div class="stat">
+            <span class="stat-value" id="tracker-stat-score">–</span>
+            <span class="stat-label">Score</span>
+            <span class="tracker-stat-note" id="tracker-stat-score-note"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="tracker-stat-event-days">–</span>
+            <span class="stat-label" id="tracker-label-event-days">Event days</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="tracker-stat-logged">–</span>
+            <span class="stat-label" id="tracker-label-logged">Days logged</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="tracker-stat-highest">–</span>
+            <span class="stat-label" id="tracker-label-highest">Highest level</span>
+          </div>
+        </div>
+        <p id="tracker-empty" class="crossword-empty hidden" style="margin-top:14px;">Nothing logged yet. Log an event or a check-in on the Today tab and your trends will appear here.</p>
+        <p id="tracker-trends-msg" class="form-msg"></p>
+      </div>
+
+      <div class="crossword-card">
+        <h2>Days</h2>
+        <div class="add-day-row">
+          <label for="tracker-add-date">Another day?</label>
+          <input type="date" id="tracker-add-date" aria-label="Date to add or edit">
+          <button type="button" class="crossword-btn-secondary" id="tracker-add-btn">Add / edit</button>
+        </div>
+        <p id="tracker-days-msg" class="form-msg"></p>
+        <div id="tracker-days-editor" data-panel="editor"></div>
+        <ul id="tracker-days-list" class="solves-list"></ul>
+      </div>
+
+      <div id="tracker-charts" class="hidden">
+        <div class="crossword-card">
+          <h2>Events per week</h2>
+          <div id="tracker-chart-weekly" class="chart-box"></div>
+        </div>
+        <div class="crossword-card">
+          <h2>Rolling score</h2>
+          <div id="tracker-chart-score" class="chart-box"></div>
+          <p id="tracker-score-hint" class="crossword-empty hidden"></p>
+        </div>
+      </div>
+
+      <div class="crossword-card hidden" id="tracker-flags-card">
+        <h2>Day flags</h2>
+        <p class="crossword-empty tracker-table-intro">Event days out of checked-in days, with the flag and without it.</p>
+        <table class="tracker-table">
+          <thead><tr><th scope="col">Flag</th><th scope="col">With</th><th scope="col">Without</th></tr></thead>
+          <tbody id="tracker-flag-rows"></tbody>
+        </table>
+        <p class="crossword-empty tracker-caption">Shows association only.</p>
+      </div>
+
+      <div class="crossword-card hidden" id="tracker-tags-card">
+        <h2>Event tags</h2>
+        <table class="tracker-table">
+          <thead><tr><th scope="col">Tag</th><th scope="col">Events</th><th scope="col">Share</th></tr></thead>
+          <tbody id="tracker-tag-rows"></tbody>
+        </table>
+        <p class="crossword-empty tracker-caption">Only recorded when an event happens, so this cannot show cause.</p>
+      </div>
+
+      <div class="crossword-card">
+        <h2>Export</h2>
+        <p class="crossword-empty tracker-table-intro">Two CSV files, days and events, made in your browser from what's loaded here.</p>
+        <button type="button" class="crossword-btn-secondary" id="tracker-export-btn" onclick="exportTracker()">Download CSVs</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <footer>
@@ -1503,6 +1883,7 @@
   const viewPageViewer = document.getElementById('page-viewer');
   const viewCrossword = document.getElementById('view-crossword');
   const viewEspresso  = document.getElementById('view-espresso');
+  const viewTracker   = document.getElementById('view-tracker');
   const btnSignin    = document.getElementById('btn-signin');
   const errorBanner   = document.getElementById('error-banner');
   const userNav       = document.getElementById('user-nav');
@@ -1551,6 +1932,7 @@
     viewPageViewer.classList.add('hidden');
     viewCrossword.classList.add('hidden');
     viewEspresso.classList.add('hidden');
+    viewTracker.classList.add('hidden');
     if (name === 'loading')  viewLoading.classList.remove('hidden');
     if (name === 'signin')    viewSignin.classList.remove('hidden');
     if (name === 'dashboard') viewDashboard.classList.remove('hidden');
@@ -3243,6 +3625,928 @@
     crosswordMsg('espresso-shot-msg', makeCurrent ? 'Logged — now the current recipe ✓' : 'Logged ✓', 'success');
     await renderBeanDetail({ prefill: true });
   }
+</script>
+
+<script>
+  // ── Daily tracker ──
+  // Private to one person: the rules refuse every other member, read included.
+  // Read depends on resource.data.uid, so each list query carries
+  // where('uid','==',uid), and days are looked up in memory, never by a
+  // speculative doc().get() (a get on a missing day doc is refused).
+  // The page knows only levels, tags, flags and markers. Every label shown
+  // comes from tracker_config/{uid}, and the card appears only when it exists.
+  // A day with a check-in or an event is "logged"; a check-in with no events
+  // is a clear day; a day with neither is left out of every rate and score.
+  const TRACKER_CONFIG = 'tracker_config';
+  const TRACKER_EVENTS = 'tracker_events';
+  const TRACKER_DAYS = 'tracker_days';
+  const TRACKER_PAST_DAYS = 60;  // how far back a new event's date can go
+  const TRACKER_MISSED_DAYS = 7; // how far back "Missed days" looks
+  const TRACKER_MIN_SIDE = 5;    // checked-in days needed on each side of a flag comparison
+  const TRACKER_ID = /^[a-z0-9_]{1,24}$/;
+
+  let trackerConfig = null;      // normalised config; null for a member without one
+  let trackerUid = null;
+  let trackerEvents = [];        // every own event, oldest first by `at`
+  let trackerByDate = new Map(); // date → that day's events
+  let trackerDays = new Map();   // date → own check-in doc
+  let trackerStale = true;       // refetch both collections before the next render
+  let trackerChartsStale = true; // redraw the charts on the next Trends render
+  let trackerLoadSeq = 0, trackerCardSeq = 0;
+  let trackerTab = 'today';
+  let trackerEditor = null;      // the one past-day editor: { date, host: 'missed' | 'days' }
+  let trackerForm = null;        // the open event form (at most one), see trackerOpenEventForm()
+  let trackerCheckin = {};       // panel → check-in form state while that form is shown
+  const trackerPanels = { today: { date: null, events: [], msg: '' }, editor: { date: null, events: [], msg: '' } };
+  let trackerMissedRows = [];    // a Missed days row's data-index points here
+  let trackerDayRows = [];       // a Days row's data-index points here
+
+  // ── Small pure helpers ──
+  function trackerAddDays(date, n) {
+    const d = new Date(`${date}T12:00:00`); // midday, so a DST change can't skip a day
+    d.setDate(d.getDate() + n);
+    return localDateStr(d);
+  }
+
+  // The Monday that starts the ISO week holding `date`
+  function trackerWeekOf(date) {
+    const d = new Date(`${date}T12:00:00`);
+    return trackerAddDays(date, -((d.getDay() + 6) % 7));
+  }
+
+  function trackerMillis(ts) {
+    return ts && typeof ts.toMillis === 'function' ? ts.toMillis() : 0;
+  }
+
+  function trackerClock(ms) {
+    const d = new Date(ms);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  function trackerDayLabel(date, today = localDateStr()) {
+    if (date === today) return 'Today';
+    if (date === trackerAddDays(today, -1)) return 'Yesterday';
+    return friendlyDate(date);
+  }
+
+  const trackerTidy = s => String(s ?? '').replace(/\s+/g, ' ').trim(); // one-line text
+  const trackerTrim = s => String(s ?? '').trim();                     // notes keep line breaks
+  const trackerPlural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+  // 23.3, or 23 when it's whole
+  function trackerFmtScore(x) {
+    const r = Math.round(x * 10) / 10;
+    return Number.isInteger(r) ? String(r) : r.toFixed(1);
+  }
+
+  // Defensive defaults: the page must still render if the config is edited
+  function normaliseTrackerConfig(raw) {
+    const list = v => (Array.isArray(v) ? v : []);
+    const levels = list(raw.levels).filter(l => l && Number.isInteger(l.id))
+      .map(l => ({ id: l.id, label: String(l.label ?? l.id), detail: String(l.detail ?? ''), points: Number(l.points) || 0 }))
+      .sort((a, b) => a.id - b.id);
+    const items = v => list(v).filter(x => x && typeof x.id === 'string')
+      .map(x => ({ id: x.id, label: String(x.label ?? x.id), group: String(x.group ?? ''), excludeFromScore: x.excludeFromScore === true }));
+    const s = raw.score || {};
+    const windowDays = Number.isInteger(s.windowDays) && s.windowDays > 0 ? s.windowDays : 14;
+    const minDays = Number.isInteger(s.minDays) && s.minDays > 0 ? Math.min(s.minDays, windowDays) : windowDays;
+    const top = Math.max(0, ...levels.map(l => l.points));
+    return {
+      title: String(raw.title || 'Daily tracker'),
+      levels,
+      eventTags: items(raw.eventTags),
+      dayFlags: items(raw.dayFlags),
+      eventTextLabel: String(raw.eventTextLabel || 'Text'),
+      score: { windowDays, minDays, max: Number(s.max) > 0 ? Number(s.max) : top * windowDays }
+    };
+  }
+
+  // Ids are never checked against the config on read: an id the config no
+  // longer has still renders, as itself
+  const trackerLevel = id => trackerConfig.levels.find(l => l.id === id);
+  const trackerLevelLabel = id => trackerLevel(id)?.label ?? String(id);
+  const trackerTagLabel = id => trackerConfig.eventTags.find(t => t.id === id)?.label ?? id;
+  const trackerFlagLabel = id => trackerConfig.dayFlags.find(f => f.id === id)?.label ?? id;
+
+  // ── Card: shown only when the signed-in member has a config ──
+  function resetTracker() {
+    trackerConfig = null; trackerUid = null;
+    trackerEvents = []; trackerByDate = new Map(); trackerDays = new Map();
+    trackerStale = true; trackerChartsStale = true; trackerLoadSeq++;
+    trackerEditor = null; trackerForm = null; trackerCheckin = {};
+    document.getElementById('tracker-card').classList.add('hidden');
+    ['tracker-today', 'tracker-missed-list', 'tracker-missed-editor', 'tracker-days-editor', 'tracker-days-list',
+     'tracker-flag-rows', 'tracker-tag-rows', 'tracker-text-options'].forEach(id => { document.getElementById(id).replaceChildren(); });
+  }
+
+  async function refreshTrackerCard(user) {
+    const seq = ++trackerCardSeq;
+    resetTracker();
+    if (!user) return;
+    try {
+      // By id: allowed for your own uid whether or not the doc exists
+      const snap = await db.collection(TRACKER_CONFIG).doc(user.uid).get();
+      if (seq !== trackerCardSeq || !snap.exists) return;
+      trackerConfig = normaliseTrackerConfig(snap.data() || {});
+      trackerUid = user.uid;
+      document.getElementById('tracker-card').classList.remove('hidden');
+    } catch (err) {
+      console.error('Error checking the tracker config:', err);
+    }
+  }
+
+  auth.onAuthStateChanged(user => refreshTrackerCard(user));
+
+  // ── Data: one uid == query per collection, everything else in JS ──
+  async function loadTrackerData() {
+    const uid = trackerUid, seq = ++trackerLoadSeq;
+    const [evSnap, daySnap] = await Promise.all([
+      db.collection(TRACKER_EVENTS).where('uid', '==', uid).get(),
+      db.collection(TRACKER_DAYS).where('uid', '==', uid).get()
+    ]);
+    if (seq !== trackerLoadSeq || uid !== trackerUid) return false; // left, or signed out, meanwhile
+    const isDate = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+    trackerEvents = evSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .filter(e => isDate(e.date) && Number.isInteger(e.level))
+      .sort((a, b) => trackerMillis(a.at) - trackerMillis(b.at));
+    trackerByDate = new Map();
+    trackerEvents.forEach(e => { if (!trackerByDate.has(e.date)) trackerByDate.set(e.date, []); trackerByDate.get(e.date).push(e); });
+    trackerDays = new Map(daySnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => isDate(d.date)).map(d => [d.date, d]));
+    trackerStale = false;
+    trackerChartsStale = true;
+    refreshTrackerSuggestions();
+    return true;
+  }
+
+  // Pure: earlier answers, most recent first, one per spelling ignoring case
+  function trackerTextSuggestions(events) {
+    const seen = new Set(), out = [];
+    events.slice().sort((a, b) => trackerMillis(b.at) - trackerMillis(a.at)).forEach(e => {
+      const v = trackerTidy(e.text), k = v.toLowerCase();
+      if (v && !seen.has(k)) { seen.add(k); out.push(v); }
+    });
+    return out;
+  }
+
+  function refreshTrackerSuggestions() {
+    // .value, never innerHTML: the text is user-entered
+    document.getElementById('tracker-text-options').replaceChildren(...trackerTextSuggestions(trackerEvents).map(v => {
+      const o = document.createElement('option');
+      o.value = v;
+      return o;
+    }));
+  }
+
+  // ── Derived, over the loaded data ──
+  function trackerLoggedDates() {
+    return [...new Set([...trackerDays.keys(), ...trackerByDate.keys()])].sort();
+  }
+
+  function trackerDayInfo(date) {
+    const events = trackerByDate.get(date) || [], day = trackerDays.get(date) || null;
+    const flags = day && Array.isArray(day.flags) ? day.flags : [];
+    return {
+      date, day, events, flags,
+      logged: !!day || events.length > 0,
+      top: events.length ? Math.max(...events.map(e => e.level)) : null,
+      excluded: flags.some(id => trackerConfig.dayFlags.some(f => f.id === id && f.excludeFromScore))
+    };
+  }
+
+  // Score for the window ending on `endDate`. A day flagged excludeFromScore
+  // counts as not logged here only. Each remaining logged day scores 0 with no
+  // events, else the points of its highest-level event. Scaled to windowDays.
+  function trackerScoreFor(endDate) {
+    const { windowDays, minDays } = trackerConfig.score;
+    let sum = 0, days = 0;
+    for (let i = 0; i < windowDays; i++) {
+      const info = trackerDayInfo(trackerAddDays(endDate, -i));
+      if (!info.logged || info.excluded) continue;
+      days++;
+      if (info.top !== null) sum += trackerLevel(info.top)?.points ?? 0;
+    }
+    if (days < minDays) return { score: null, days, needed: minDays - days };
+    return { score: sum * windowDays / days, days, needed: 0 };
+  }
+
+  function trackerWindowStats(endDate) {
+    const windowDays = trackerConfig.score.windowDays;
+    let eventDays = 0, logged = 0, highest = null;
+    for (let i = 0; i < windowDays; i++) {
+      const info = trackerDayInfo(trackerAddDays(endDate, -i));
+      if (info.logged) logged++;
+      if (info.events.length) { eventDays++; highest = Math.max(highest ?? info.top, info.top); }
+    }
+    return { windowDays, eventDays, logged, highest };
+  }
+
+  // Only checked-in days count here: a day with events but no check-in has unknown flags
+  function trackerFlagRows() {
+    const ids = trackerConfig.dayFlags.map(f => f.id);
+    trackerDays.forEach(d => (d.flags || []).forEach(id => { if (!ids.includes(id)) ids.push(id); }));
+    const checked = [...trackerDays.keys()].map(trackerDayInfo);
+    return ids.map(id => {
+      const side = has => {
+        const days = checked.filter(i => i.flags.includes(id) === has);
+        return { eventDays: days.filter(i => i.events.length).length, days: days.length };
+      };
+      const on = side(true), off = side(false);
+      return { label: trackerFlagLabel(id), on, off, enough: on.days >= TRACKER_MIN_SIDE && off.days >= TRACKER_MIN_SIDE };
+    });
+  }
+
+  function trackerTagRows() {
+    const ids = trackerConfig.eventTags.map(t => t.id);
+    trackerEvents.forEach(e => (e.tags || []).forEach(id => { if (!ids.includes(id)) ids.push(id); }));
+    return ids.map(id => ({ label: trackerTagLabel(id), count: trackerEvents.filter(e => (e.tags || []).includes(id)).length, total: trackerEvents.length }));
+  }
+
+  // Days on or after the first ever log, within the last week, with neither a check-in nor an event
+  function trackerMissedDays(today) {
+    const logged = trackerLoggedDates();
+    if (!logged.length) return [];
+    const set = new Set(logged), out = [];
+    for (let i = 1; i <= TRACKER_MISSED_DAYS; i++) {
+      const d = trackerAddDays(today, -i);
+      if (d < logged[0]) break;
+      if (!set.has(d)) out.push(d);
+    }
+    return out;
+  }
+
+  // ── Export: built from the loaded data, no network call ──
+  function trackerCsvCell(v) {
+    let s = String(v ?? '');
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; // a spreadsheet would run it as a formula
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  function trackerCsvText(rows) {
+    return rows.map(r => r.map(trackerCsvCell).join(',')).join('\r\n') + '\r\n';
+  }
+
+  function trackerCsv() {
+    const days = [['date', 'checked_in', 'events', 'highest_level', 'highest_level_label', 'flags', 'flag_labels', 'note', 'marker']];
+    for (const date of trackerLoggedDates()) {
+      const i = trackerDayInfo(date);
+      days.push([date, i.day ? 'yes' : 'no', i.events.length, i.top ?? '', i.top === null ? '' : trackerLevelLabel(i.top),
+        i.flags.join(';'), i.flags.map(trackerFlagLabel).join(';'), i.day?.note ?? '', i.day?.marker ?? '']);
+    }
+    const events = [['date', 'time', 'level', 'level_label', 'tags', 'tag_labels', 'text', 'note']];
+    for (const e of trackerEvents) {
+      const tags = e.tags || [];
+      events.push([e.date, trackerClock(trackerMillis(e.at)), e.level, trackerLevelLabel(e.level),
+        tags.join(';'), tags.map(trackerTagLabel).join(';'), e.text ?? '', e.note ?? '']);
+    }
+    return { days: trackerCsvText(days), events: trackerCsvText(events) };
+  }
+
+  function trackerDownload(name, text) {
+    const url = URL.createObjectURL(new Blob(['﻿', text], { type: 'text/csv;charset=utf-8' })); // BOM, for Excel
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportTracker() {
+    if (!trackerConfig) return;
+    const { days, events } = trackerCsv(), stamp = localDateStr();
+    trackerDownload(`tracker-days-${stamp}.csv`, days);
+    setTimeout(() => trackerDownload(`tracker-events-${stamp}.csv`, events), 300); // two at once can be blocked
+  }
+
+  // ── Open / close / tabs ──
+  function openTracker() {
+    if (!trackerConfig) return;
+    viewDashboard.classList.add('hidden');
+    viewTracker.classList.remove('hidden');
+    document.getElementById('tracker-title').textContent = `📈 ${trackerConfig.title}`;
+    document.getElementById('tracker-date').textContent =
+      new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    trackerEditor = null; trackerForm = null; trackerCheckin = {};
+    trackerPanels.today.msg = ''; trackerPanels.editor.msg = '';
+    trackerStale = true;
+    switchTrackerTab('today');
+  }
+
+  function closeTracker() {
+    trackerLoadSeq++; // a read still in flight renders nothing
+    viewTracker.classList.add('hidden');
+    viewDashboard.classList.remove('hidden');
+  }
+
+  function switchTrackerTab(tab) {
+    trackerTab = tab;
+    document.getElementById('tracker-tab-today').classList.toggle('active', tab === 'today');
+    document.getElementById('tracker-tab-trends').classList.toggle('active', tab === 'trends');
+    document.getElementById('tracker-pane-today').classList.toggle('hidden', tab !== 'today');
+    document.getElementById('tracker-pane-trends').classList.toggle('hidden', tab !== 'trends');
+    trackerCloseEditor(false); // each tab has its own place for it
+    refreshTracker();
+  }
+
+  async function refreshTracker() {
+    if (!trackerConfig) return;
+    crosswordMsg('tracker-msg', '', 'error');
+    if (trackerStale) {
+      try {
+        if (!(await loadTrackerData())) return;
+      } catch (err) {
+        console.error('Error loading the tracker:', err);
+        crosswordMsg('tracker-msg', 'Couldn\'t load your entries. Please try again.', 'error');
+        return;
+      }
+    }
+    if (trackerTab === 'today') renderTrackerToday();
+    else renderTrackerTrends();
+  }
+
+  // ── Panels: today, and one editor for a past day ──
+  function trackerPanelHost(key) {
+    if (key === 'today') return document.getElementById('tracker-today');
+    if (!trackerEditor) return null;
+    return document.getElementById(trackerEditor.host === 'missed' ? 'tracker-missed-editor' : 'tracker-days-editor');
+  }
+
+  function trackerOpenEditor(date, host) {
+    trackerCapture();
+    if (trackerForm && trackerForm.panel === 'editor') trackerForm = null;
+    delete trackerCheckin.editor;
+    trackerPanels.editor.msg = '';
+    trackerEditor = { date, host };
+    if (host === 'missed') renderTrackerToday(); else renderTrackerTrends();
+    trackerPanelHost('editor')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function trackerCloseEditor(render = true) {
+    const host = trackerPanelHost('editor');
+    if (host) host.replaceChildren();
+    if (trackerForm && trackerForm.panel === 'editor') trackerForm = null;
+    delete trackerCheckin.editor;
+    trackerEditor = null;
+    if (render && trackerTab === 'today') renderTrackerToday();
+    else if (render) renderTrackerTrends();
+  }
+
+  // Keep what's been typed when a panel re-renders
+  function trackerCapture() {
+    for (const key of ['today', 'editor']) {
+      const host = trackerPanelHost(key);
+      if (!host) continue;
+      const ef = host.querySelector('form[data-form="event"]');
+      if (ef && trackerForm && trackerForm.panel === key) {
+        trackerForm.text = ef.querySelector('.tf-text').value;
+        trackerForm.note = ef.querySelector('.tf-note').value;
+        trackerForm.date = ef.querySelector('.tf-date').value;
+        trackerForm.time = ef.querySelector('.tf-time').value;
+      }
+      const cf = host.querySelector('form[data-form="checkin"]'), ck = trackerCheckin[key];
+      if (cf && ck) {
+        ck.note = cf.querySelector('.tc-note').value;
+        const m = cf.querySelector('.tc-marker');
+        if (m) ck.marker = m.value;
+      }
+    }
+  }
+
+  function trackerRenderPanels() {
+    trackerCapture();
+    renderTrackerPanel('today');
+    if (trackerEditor) renderTrackerPanel('editor');
+  }
+
+  function trackerNewCheckin(date, day) {
+    const options = trackerConfig.dayFlags.map(f => f.id);
+    (day?.flags || []).forEach(id => { if (!options.includes(id)) options.push(id); });
+    return { date, hadDay: !!day, options, flags: (day?.flags || []).slice(), note: day?.note ?? '', marker: day?.marker ?? '', markerOpen: !!day?.marker };
+  }
+
+  function trackerEventFormHtml(f) {
+    const levelChips = f.levelOptions.map((id, i) =>
+      `<button type="button" class="tracker-chip" data-act="level" data-index="${i}" aria-pressed="${id === f.level}">${escapeHtml(trackerLevelLabel(id))}</button>`).join('');
+    const groups = [];
+    f.options.forEach((id, k) => {
+      const tag = trackerConfig.eventTags.find(t => t.id === id);
+      const name = tag ? tag.group : '';
+      let g = groups.find(x => x.name === name);
+      if (!g) groups.push(g = { name, chips: [] });
+      g.chips.push(`<button type="button" class="tracker-chip" data-act="tag" data-index="${k}" aria-pressed="${f.tags.includes(id)}">${escapeHtml(trackerTagLabel(id))}</button>`);
+    });
+    const tagHtml = groups.map(g => `<div class="tracker-chip-group">${g.name ? `<span class="tracker-group-name">${escapeHtml(g.name)}</span>` : ''}<div class="tracker-chips">${g.chips.join('')}</div></div>`).join('');
+    const del = f.id === null ? '' : f.confirm
+      ? `<span class="tracker-confirm">Delete this event?
+           <button type="button" class="crossword-btn-secondary crossword-btn-danger" data-act="delete">Delete</button>
+           <button type="button" class="crossword-btn-secondary" data-act="keep">Keep</button></span>`
+      : '<button type="button" class="crossword-btn-secondary crossword-btn-danger" data-act="ask-delete">Delete</button>';
+    return `<form class="crossword-form espresso-form tracker-form" data-form="event" novalidate>
+        <div class="tracker-chip-group"><span class="tracker-group-name">Level</span><div class="tracker-chips">${levelChips}</div></div>
+        ${tagHtml}
+        <label class="espresso-field espresso-field-text">${escapeHtml(trackerConfig.eventTextLabel)} (optional)
+          <input type="text" class="tf-text" list="tracker-text-options" maxlength="80" autocomplete="off">
+        </label>
+        <label class="espresso-field espresso-field-text">Note (optional)
+          <textarea class="tf-note" rows="2" maxlength="280"></textarea>
+        </label>
+        <label class="espresso-field">Date
+          <input type="date" class="tf-date">
+        </label>
+        <label class="espresso-field">Time
+          <input type="time" class="tf-time">
+        </label>
+        <div class="tracker-actions">
+          <button type="submit" class="crossword-submit tf-save">Save</button>
+          <button type="button" class="crossword-btn-secondary" data-act="cancel">Cancel</button>
+          ${del}
+        </div>
+        <p class="form-msg tf-msg"></p>
+      </form>`;
+  }
+
+  function trackerCheckinFormHtml(ck, hasDay) {
+    const chips = ck.options.map((id, k) =>
+      `<button type="button" class="tracker-chip" data-act="flag" data-index="${k}" aria-pressed="${ck.flags.includes(id)}">${escapeHtml(trackerFlagLabel(id))}</button>`).join('');
+    const marker = ck.markerOpen
+      ? `<label class="espresso-field espresso-field-text">Marker (optional, drawn on the charts)
+           <input type="text" class="tc-marker" maxlength="40" autocomplete="off">
+         </label>`
+      : '<div class="tracker-actions"><button type="button" class="crossword-btn-secondary" data-act="add-marker">Add a marker</button></div>';
+    return `<form class="crossword-form espresso-form tracker-form" data-form="checkin" novalidate>
+        ${chips ? `<div class="tracker-chips">${chips}</div>` : ''}
+        <label class="espresso-field espresso-field-text">Note (optional)
+          <textarea class="tc-note" rows="2" maxlength="280"></textarea>
+        </label>
+        ${marker}
+        <div class="tracker-actions">
+          <button type="submit" class="crossword-submit tc-save">Save check-in</button>
+          ${hasDay ? '<button type="button" class="crossword-btn-secondary" data-act="cancel-checkin">Cancel</button>' : ''}
+        </div>
+        <p class="form-msg tc-msg"></p>
+      </form>`;
+  }
+
+  function renderTrackerPanel(key) {
+    const host = trackerPanelHost(key);
+    if (!host || !trackerConfig) return;
+    const p = trackerPanels[key], isToday = key === 'today';
+    p.date = isToday ? localDateStr() : trackerEditor.date;
+    const info = trackerDayInfo(p.date);
+    p.events = info.events.slice().sort((a, b) => trackerMillis(b.at) - trackerMillis(a.at));
+    const f = trackerForm && trackerForm.panel === key ? trackerForm : null;
+    const section = (title, body) => isToday
+      ? `<div class="crossword-card"><h2>${title}</h2>${body}</div>`
+      : `<div class="tracker-sub"><h3>${title}</h3>${body}</div>`;
+
+    const levels = `<div class="tracker-levels">${trackerConfig.levels.map((l, i) =>
+      `<button type="button" class="tracker-level" data-act="new" data-index="${i}">
+         <span class="tracker-level-label">${escapeHtml(l.label)}</span>
+         ${l.detail ? `<span class="tracker-level-detail">${escapeHtml(l.detail)}</span>` : ''}
+       </button>`).join('')}</div>`;
+
+    const rows = p.events.map((e, j) => {
+      if (f && f.index === j) return `<li>${trackerEventFormHtml(f)}</li>`;
+      const tags = (e.tags || []).map(trackerTagLabel).join(', ');
+      return `<li><button type="button" class="solve-row tracker-event-row" data-act="edit" data-index="${j}">
+          <span class="tracker-ev-time">${trackerClock(trackerMillis(e.at))}</span>
+          <span class="tracker-ev-main">${escapeHtml(trackerLevelLabel(e.level))}${e.text ? ` · ${escapeHtml(e.text)}` : ''}</span>
+          ${tags ? `<span class="tracker-ev-meta">${escapeHtml(tags)}</span>` : ''}
+        </button></li>`;
+    }).join('');
+    const msg = p.msg ? `<p class="form-msg success visible">${escapeHtml(p.msg)}</p>` : '';
+    const events = msg + (rows ? `<ul class="tracker-list">${rows}</ul>`
+      : `<p class="crossword-empty">No events logged${isToday ? ' today' : ''}.</p>`);
+
+    let ck = trackerCheckin[key];
+    // The day rolled over, or its check-in appeared underneath an open form (e.g. from another device)
+    if (ck && (ck.date !== p.date || ck.hadDay !== !!info.day)) { delete trackerCheckin[key]; ck = null; }
+    let checkin;
+    if (info.day && !ck) {
+      const n = info.events.length;
+      checkin = `<p class="tracker-day-status">${n ? trackerPlural(n, 'event') : 'Clear day'}</p>
+        ${info.flags.length ? `<p class="tracker-day-detail">${escapeHtml(info.flags.map(trackerFlagLabel).join(', '))}</p>` : ''}
+        ${info.day.note ? `<p class="tracker-day-detail">${escapeHtml(info.day.note)}</p>` : ''}
+        ${info.day.marker ? `<p class="tracker-day-detail">Marker: ${escapeHtml(info.day.marker)}</p>` : ''}
+        <div class="tracker-actions"><button type="button" class="crossword-btn-secondary" data-act="edit-checkin">Edit check-in</button></div>`;
+    } else {
+      if (!ck) ck = trackerCheckin[key] = trackerNewCheckin(p.date, info.day);
+      checkin = trackerCheckinFormHtml(ck, !!info.day);
+    }
+
+    const body = section('Log an event', levels + (f && f.index === null ? trackerEventFormHtml(f) : ''))
+      + section(isToday ? 'Today\'s events' : 'Events', events)
+      + section('Check-in', checkin);
+    host.innerHTML = isToday ? body
+      : `<div class="tracker-editor">
+           <div class="tracker-editor-head"><h3>${escapeHtml(trackerDayLabel(p.date))}</h3>
+             <button type="button" class="crossword-btn-secondary" data-act="close-editor">Close</button></div>
+           ${body}
+         </div>`;
+
+    // Values go in through properties, never attributes
+    const ef = host.querySelector('form[data-form="event"]');
+    if (ef && f) {
+      ef.querySelector('.tf-text').value = f.text;
+      ef.querySelector('.tf-note').value = f.note;
+      const di = ef.querySelector('.tf-date');
+      di.max = localDateStr();
+      di.min = f.origDate && f.origDate < trackerAddDays(di.max, -TRACKER_PAST_DAYS) ? f.origDate : trackerAddDays(di.max, -TRACKER_PAST_DAYS);
+      di.value = f.date;
+      ef.querySelector('.tf-time').value = f.time;
+    }
+    const cf = host.querySelector('form[data-form="checkin"]');
+    if (cf && ck) {
+      cf.querySelector('.tc-note').value = ck.note;
+      const m = cf.querySelector('.tc-marker');
+      if (m) m.value = ck.marker;
+    }
+  }
+
+  // index: null for a new event (levelIndex is the tapped level), else into the panel's events
+  function trackerOpenEventForm(key, index, levelIndex) {
+    trackerCapture();
+    const p = trackerPanels[key], e = index === null ? null : p.events[index];
+    const levelOptions = trackerConfig.levels.map(l => l.id);
+    if (e && !levelOptions.includes(e.level)) levelOptions.push(e.level);
+    const options = trackerConfig.eventTags.map(t => t.id);
+    (e?.tags || []).forEach(id => { if (!options.includes(id)) options.push(id); });
+    trackerPanels.today.msg = ''; trackerPanels.editor.msg = '';
+    trackerForm = {
+      panel: key, index, id: e ? e.id : null, origDate: e ? e.date : null,
+      level: e ? e.level : trackerConfig.levels[levelIndex].id, levelOptions,
+      tags: (e?.tags || []).slice(), options,
+      text: e?.text ?? '', note: e?.note ?? '',
+      // A new event defaults to now: the panel's date at the current clock time
+      date: e ? e.date : p.date, time: trackerClock(e ? trackerMillis(e.at) : Date.now()),
+      confirm: false
+    };
+    renderTrackerPanel('today');
+    if (trackerEditor) renderTrackerPanel('editor');
+    trackerPanelHost(key)?.querySelector('form[data-form="event"]')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function trackerFormError(host, sel, text) {
+    const el = host.querySelector(sel);
+    el.textContent = text;
+    el.className = `form-msg error visible ${sel.slice(1)}`;
+  }
+
+  async function saveTrackerEvent(key, host) {
+    const f = trackerForm;
+    if (!f || f.panel !== key) return;
+    trackerCapture();
+    const err = m => trackerFormError(host, '.tf-msg', m);
+    const today = localDateStr(), text = trackerTidy(f.text), note = trackerTrim(f.note);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return err('Pick a date.');
+    if (f.date > today) return err('The date can\'t be in the future.');
+    if (f.date < trackerAddDays(today, -TRACKER_PAST_DAYS) && f.date !== f.origDate) return err(`Pick a date in the last ${TRACKER_PAST_DAYS} days.`);
+    if (!/^\d{2}:\d{2}$/.test(f.time)) return err('Pick a time.');
+    const at = new Date(`${f.date}T${f.time}:00`);
+    if (isNaN(at.getTime())) return err('Pick a time.');
+    if (at.getTime() > Date.now()) return err('The time can\'t be in the future.');
+    if (!Number.isInteger(f.level) || f.level < 1 || f.level > 6) return err('Pick a level.');
+    if (text.length > 80) return err(`${trackerConfig.eventTextLabel} can be up to 80 characters.`);
+    if (note.length > 280) return err('The note can be up to 280 characters.');
+    const tags = f.options.filter(id => f.tags.includes(id) && TRACKER_ID.test(id));
+    if (tags.length > 8) return err('Pick up to 8 tags.');
+
+    const FV = firebase.firestore.FieldValue;
+    const fields = { date: f.date, at: firebase.firestore.Timestamp.fromDate(at), level: f.level };
+    const button = host.querySelector('.tf-save');
+    button.disabled = true;
+    try {
+      if (f.id) {
+        // Blanks are removed, never written empty: the rules refuse '' and []
+        await db.collection(TRACKER_EVENTS).doc(f.id).update({ ...fields,
+          tags: tags.length ? tags : FV.delete(), text: text || FV.delete(), note: note || FV.delete(),
+          updatedAt: FV.serverTimestamp() });
+      } else {
+        await db.collection(TRACKER_EVENTS).add({ uid: trackerUid, ...fields,
+          ...(tags.length ? { tags } : {}), ...(text ? { text } : {}), ...(note ? { note } : {}),
+          createdAt: FV.serverTimestamp(), updatedAt: FV.serverTimestamp() });
+      }
+    } catch (e) {
+      console.error('Error saving an event:', e);
+      button.disabled = false;
+      return err('Couldn\'t save the event. Please try again.');
+    }
+    trackerForm = null;
+    trackerPanels[key].msg = f.id ? 'Event updated ✓' : 'Event logged ✓';
+    trackerStale = true;
+    await refreshTracker();
+  }
+
+  async function deleteTrackerEvent(key, host) {
+    const f = trackerForm;
+    if (!f || f.panel !== key || !f.id) return;
+    try {
+      await db.collection(TRACKER_EVENTS).doc(f.id).delete();
+    } catch (e) {
+      console.error('Error deleting an event:', e);
+      return trackerFormError(host, '.tf-msg', 'Couldn\'t delete the event. Please try again.');
+    }
+    trackerForm = null;
+    trackerPanels[key].msg = 'Event deleted';
+    trackerStale = true;
+    await refreshTracker();
+  }
+
+  async function saveTrackerCheckin(key, host) {
+    const ck = trackerCheckin[key];
+    if (!ck) return;
+    trackerCapture();
+    const err = m => trackerFormError(host, '.tc-msg', m);
+    const date = trackerPanels[key].date, day = trackerDays.get(date);
+    const note = trackerTrim(ck.note), marker = trackerTidy(ck.marker);
+    if (note.length > 280) return err('The note can be up to 280 characters.');
+    if (marker.length > 40) return err('The marker can be up to 40 characters.');
+    const flags = ck.options.filter(id => ck.flags.includes(id) && TRACKER_ID.test(id));
+    if (flags.length > 6) return err('Pick up to 6.');
+
+    const FV = firebase.firestore.FieldValue;
+    const button = host.querySelector('.tc-save');
+    button.disabled = true;
+    try {
+      if (day) {
+        await db.collection(TRACKER_DAYS).doc(day.id).update({
+          flags: flags.length ? flags : FV.delete(), note: note || FV.delete(), marker: marker || FV.delete(),
+          updatedAt: FV.serverTimestamp() });
+      } else {
+        // The rules require this id, so one person has one check-in per day
+        await db.collection(TRACKER_DAYS).doc(`${date}_${trackerUid}`).set({ uid: trackerUid, date,
+          ...(flags.length ? { flags } : {}), ...(note ? { note } : {}), ...(marker ? { marker } : {}),
+          createdAt: FV.serverTimestamp(), updatedAt: FV.serverTimestamp() });
+      }
+    } catch (e) {
+      console.error('Error saving a check-in:', e);
+      button.disabled = false;
+      return err('Couldn\'t save the check-in. Please try again.');
+    }
+    delete trackerCheckin[key];
+    trackerStale = true;
+    await refreshTracker();
+  }
+
+  function trackerHostClick(e) {
+    const host = e.currentTarget, key = host.dataset.panel;
+    const b = e.target.closest('button[data-act]');
+    if (!b || !host.contains(b) || !trackerConfig) return;
+    const i = Number(b.dataset.index), f = trackerForm && trackerForm.panel === key ? trackerForm : null;
+    const ck = trackerCheckin[key];
+    const press = (on) => b.setAttribute('aria-pressed', String(on));
+    switch (b.dataset.act) {
+      case 'new':
+        if (f && f.index === null) { trackerCapture(); f.level = trackerConfig.levels[i].id; trackerRenderPanels(); }
+        else trackerOpenEventForm(key, null, i);
+        break;
+      case 'edit': trackerOpenEventForm(key, i); break;
+      case 'level':
+        if (!f) break;
+        f.level = f.levelOptions[i];
+        b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        break;
+      case 'tag': {
+        if (!f) break;
+        const id = f.options[i], on = !f.tags.includes(id);
+        f.tags = on ? [...f.tags, id] : f.tags.filter(x => x !== id);
+        press(on);
+        break;
+      }
+      case 'cancel': trackerCapture(); trackerForm = null; trackerRenderPanels(); break;
+      case 'ask-delete': if (f) { trackerCapture(); f.confirm = true; trackerRenderPanels(); } break;
+      case 'keep': if (f) { trackerCapture(); f.confirm = false; trackerRenderPanels(); } break;
+      case 'delete': deleteTrackerEvent(key, host); break;
+      case 'flag': {
+        if (!ck) break;
+        const id = ck.options[i], on = !ck.flags.includes(id);
+        ck.flags = on ? [...ck.flags, id] : ck.flags.filter(x => x !== id);
+        press(on);
+        break;
+      }
+      case 'add-marker':
+        if (!ck) break;
+        trackerCapture(); ck.markerOpen = true; trackerRenderPanels();
+        trackerPanelHost(key)?.querySelector('.tc-marker')?.focus();
+        break;
+      case 'edit-checkin':
+        trackerCapture();
+        trackerCheckin[key] = trackerNewCheckin(trackerPanels[key].date, trackerDays.get(trackerPanels[key].date));
+        trackerRenderPanels();
+        break;
+      case 'cancel-checkin': trackerCapture(); delete trackerCheckin[key]; trackerRenderPanels(); break;
+      case 'close-editor': trackerCloseEditor(); break;
+    }
+  }
+
+  function trackerHostSubmit(e) {
+    e.preventDefault();
+    const host = e.currentTarget, key = host.dataset.panel;
+    if (e.target.dataset.form === 'event') saveTrackerEvent(key, host);
+    else if (e.target.dataset.form === 'checkin') saveTrackerCheckin(key, host);
+  }
+
+  ['tracker-today', 'tracker-missed-editor', 'tracker-days-editor'].forEach(id => {
+    const host = document.getElementById(id);
+    host.addEventListener('click', trackerHostClick);
+    host.addEventListener('submit', trackerHostSubmit);
+  });
+
+  // ── Today tab ──
+  function renderTrackerToday() {
+    const today = localDateStr();
+    renderTrackerPanel('today');
+    trackerMissedRows = trackerMissedDays(today);
+    const editing = trackerEditor && trackerEditor.host === 'missed';
+    document.getElementById('tracker-missed-card').classList.toggle('hidden', !trackerMissedRows.length && !editing);
+    document.getElementById('tracker-missed-list').innerHTML = trackerMissedRows.map((d, i) =>
+      `<li><button type="button" class="solve-row solve-missing" data-index="${i}">
+         <span class="solve-date">${escapeHtml(trackerDayLabel(d, today))}</span>
+         <span class="solve-add">Check in</span>
+       </button></li>`).join('');
+    if (editing) renderTrackerPanel('editor');
+  }
+
+  document.getElementById('tracker-missed-list').addEventListener('click', e => {
+    const b = e.target.closest('button[data-index]');
+    if (b) trackerOpenEditor(trackerMissedRows[Number(b.dataset.index)], 'missed');
+  });
+
+  // ── Trends tab ──
+  function trackerSetText(id, text) { document.getElementById(id).textContent = text; }
+
+  function renderTrackerTrends() {
+    const cfg = trackerConfig, today = localDateStr();
+    const logged = trackerLoggedDates(), has = logged.length > 0;
+    const st = trackerWindowStats(today), sc = trackerScoreFor(today), W = st.windowDays;
+
+    trackerSetText('tracker-stat-score', has && sc.score !== null ? `${trackerFmtScore(sc.score)}/${trackerFmtScore(cfg.score.max)}` : '–');
+    trackerSetText('tracker-stat-score-note', has && sc.score === null ? `${trackerPlural(sc.needed, 'more day')} needed` : '');
+    trackerSetText('tracker-stat-event-days', has ? String(st.eventDays) : '–');
+    trackerSetText('tracker-stat-logged', has ? `${st.logged}/${W}` : '–');
+    trackerSetText('tracker-stat-highest', has && st.highest !== null ? trackerLevelLabel(st.highest) : '–');
+    trackerSetText('tracker-label-event-days', `Event days, last ${W}`);
+    trackerSetText('tracker-label-logged', `Days logged, last ${W}`);
+    trackerSetText('tracker-label-highest', `Highest, last ${W}`);
+    document.getElementById('tracker-empty').classList.toggle('hidden', has);
+
+    // Days list, newest first (crossword-style: tap a day, or pick any date)
+    const add = document.getElementById('tracker-add-date');
+    add.max = today;
+    add.min = trackerAddDays(today, -TRACKER_PAST_DAYS);
+    trackerDayRows = logged.slice().reverse();
+    document.getElementById('tracker-days-list').innerHTML = trackerDayRows.map((d, i) => {
+      const info = trackerDayInfo(d), n = info.events.length;
+      const parts = [n ? `${trackerPlural(n, 'event')} · ${trackerLevelLabel(info.top)}` : 'Clear day'];
+      if (!info.day) parts.push('no check-in');
+      if (info.day?.marker) parts.push(info.day.marker);
+      return `<li><button type="button" class="solve-row tracker-day-row" data-index="${i}">
+          <span class="solve-date">${escapeHtml(trackerDayLabel(d, today))}</span>
+          <span class="solve-meta">${escapeHtml(parts.join(' · '))}</span>
+        </button></li>`;
+    }).join('');
+    if (trackerEditor && trackerEditor.host === 'days') renderTrackerPanel('editor');
+
+    // Day flags (all history; checked-in days only)
+    const flagRows = trackerFlagRows();
+    document.getElementById('tracker-flags-card').classList.toggle('hidden', !flagRows.length);
+    document.getElementById('tracker-flag-rows').innerHTML = flagRows.map(r => `<tr>
+        <td>${escapeHtml(r.label)}</td>
+        ${r.enough ? `<td>${r.on.eventDays}/${r.on.days}</td><td>${r.off.eventDays}/${r.off.days}</td>`
+          : '<td colspan="2" class="tracker-not-enough">not enough days yet</td>'}
+      </tr>`).join('');
+
+    // Event tags (all history)
+    const tagRows = trackerTagRows();
+    document.getElementById('tracker-tags-card').classList.toggle('hidden', !tagRows.length);
+    document.getElementById('tracker-tag-rows').innerHTML = tagRows.map(r => `<tr>
+        <td>${escapeHtml(r.label)}</td>
+        <td>${r.count}/${r.total}</td>
+        <td>${r.total ? `${Math.round(100 * r.count / r.total)}%` : '–'}</td>
+      </tr>`).join('');
+
+    document.getElementById('tracker-charts').classList.toggle('hidden', !has);
+    if (has) renderTrackerCharts(logged[0], today);
+  }
+
+  document.getElementById('tracker-days-list').addEventListener('click', e => {
+    const b = e.target.closest('button[data-index]');
+    if (b) trackerOpenEditor(trackerDayRows[Number(b.dataset.index)], 'days');
+  });
+
+  document.getElementById('tracker-add-btn').addEventListener('click', () => {
+    const v = document.getElementById('tracker-add-date').value, today = localDateStr();
+    crosswordMsg('tracker-days-msg', '', 'error');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return crosswordMsg('tracker-days-msg', 'Pick a date first.', 'error');
+    if (v > today) return crosswordMsg('tracker-days-msg', 'That date is in the future.', 'error');
+    if (v < trackerAddDays(today, -TRACKER_PAST_DAYS)) return crosswordMsg('tracker-days-msg', `Pick a date in the last ${TRACKER_PAST_DAYS} days.`, 'error');
+    trackerOpenEditor(v, 'days');
+  });
+
+  // ── Charts (lazy, Plotly.react) ──
+  // Pure: n colours from light to dark along the --chart-seq ramp
+  function trackerRamp(n) {
+    const css = getComputedStyle(document.documentElement);
+    const rgb = name => { const h = css.getPropertyValue(name).trim().replace('#', ''); return [0, 2, 4].map(k => parseInt(h.slice(k, k + 2), 16)); };
+    const a = rgb('--chart-seq-light'), b = rgb('--chart-seq-dark');
+    return Array.from({ length: n }, (_, i) => {
+      const t = n === 1 ? 1 : i / (n - 1);
+      return '#' + a.map((v, k) => Math.round(v + (b[k] - v) * t).toString(16).padStart(2, '0')).join('');
+    });
+  }
+
+  // Each day marker: a dotted line with its text, on both charts
+  function trackerMarkerLayout(t) {
+    const marks = [...trackerDays.values()].filter(d => d.marker).sort((a, b) => (a.date < b.date ? -1 : 1));
+    return {
+      shapes: marks.map(d => ({ type: 'line', xref: 'x', yref: 'paper', x0: d.date, x1: d.date, y0: 0, y1: 1,
+        line: { color: t.text, width: 1, dash: 'dot' } })),
+      // Plotly reads some HTML in annotation text, so user text is escaped
+      annotations: marks.map(d => ({ xref: 'x', yref: 'paper', x: d.date, y: 1, xanchor: 'left', yanchor: 'top',
+        showarrow: false, text: escapeHtml(d.marker), font: { size: 10, color: t.text }, bgcolor: t.card }))
+    };
+  }
+
+  function trackerWeeklyTraces(first, today, t) {
+    const weeks = [];
+    for (let w = trackerWeekOf(first), end = trackerWeekOf(today); w <= end; w = trackerAddDays(w, 7)) weeks.push(w);
+    const ids = trackerConfig.levels.map(l => l.id);
+    trackerEvents.forEach(e => { if (!ids.includes(e.level)) ids.push(e.level); });
+    ids.sort((a, b) => a - b);
+    const ramp = trackerRamp(ids.length);
+    return ids.map((id, i) => ({
+      type: 'bar', name: escapeHtml(trackerLevelLabel(id)),
+      x: weeks, y: weeks.map(w => trackerEvents.filter(e => e.level === id && trackerWeekOf(e.date) === w).length),
+      // One bar spans its week, so a marker lands inside the right one
+      xperiod: 7 * 86400000, xperiod0: '2024-01-01', xperiodalignment: 'middle',
+      marker: { color: ramp[i], line: { color: t.card, width: 1 } },
+      hovertemplate: 'Week of %{x|%-d %b}: %{y}<extra>%{fullData.name}</extra>'
+    }));
+  }
+
+  function trackerScoreSeries(first, today) {
+    const x = [], y = [];
+    for (let d = first; d <= today; d = trackerAddDays(d, 1)) {
+      const s = trackerScoreFor(d);
+      x.push(d);
+      y.push(s.score === null ? null : Math.round(s.score * 10) / 10); // drawn only where minDays is met
+    }
+    return { x, y };
+  }
+
+  function renderTrackerCharts(first, today) {
+    if (!trackerChartsStale) return resizeTrackerCharts();
+    if (typeof Plotly === 'undefined') {
+      // trackerChartsStale stays true, so reopening the tab retries
+      return crosswordMsg('tracker-trends-msg', 'Charts couldn\'t load — check your connection and reload the page.', 'error');
+    }
+    crosswordMsg('tracker-trends-msg', '', 'error');
+    trackerChartsStale = false;
+    const t = chartTheme(), marks = trackerMarkerLayout(t);
+
+    const weekly = baseLayout(t);
+    weekly.barmode = 'stack';
+    weekly.bargap = 0.15;
+    weekly.xaxis.type = 'date';
+    weekly.yaxis.title = { text: 'events', font: { size: 11 } };
+    weekly.yaxis.rangemode = 'tozero';
+    weekly.yaxis.tickformat = 'd';
+    weekly.showlegend = true;
+    weekly.legend = legendAbovePlot();
+    weekly.height = 320; // room for the legend's rows
+    weekly.shapes = marks.shapes;
+    weekly.annotations = marks.annotations;
+    Plotly.react('tracker-chart-weekly', trackerWeeklyTraces(first, today, t), weekly, CHART_CONFIG);
+
+    const series = trackerScoreSeries(first, today), drawn = series.y.filter(v => v !== null).length;
+    const score = baseLayout(t);
+    score.xaxis.type = 'date';
+    score.yaxis.title = { text: 'score', font: { size: 11 } };
+    score.yaxis.range = [0, trackerConfig.score.max];
+    score.showlegend = false;
+    score.shapes = marks.shapes;
+    score.annotations = marks.annotations;
+    Plotly.react('tracker-chart-score', [{
+      x: series.x, y: series.y, name: 'Score', connectgaps: false,
+      mode: drawn < 15 ? 'lines+markers' : 'lines',
+      line: { color: t.line1, width: 2 }, marker: { size: 6 },
+      hovertemplate: '%{x|%-d %b}: %{y:.1f}<extra></extra>'
+    }], score, CHART_CONFIG);
+    const hint = document.getElementById('tracker-score-hint');
+    hint.textContent = drawn ? '' : `The score appears once ${trackerConfig.score.minDays} of the last ${trackerConfig.score.windowDays} days are logged.`;
+    hint.classList.toggle('hidden', !!drawn);
+  }
+
+  function resizeTrackerCharts() {
+    if (typeof Plotly === 'undefined') return;
+    ['tracker-chart-weekly', 'tracker-chart-score'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.data && el.offsetParent !== null) Plotly.Plots.resize(el);
+    });
+  }
+
+  window.addEventListener('resize', resizeTrackerCharts);
 </script>
 
 </body>

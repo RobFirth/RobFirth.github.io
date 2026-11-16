@@ -13,11 +13,12 @@ export const matchSets = [
 
 export const pictureFor = word => `img/words/${word}.svg`;
 
-// Flashcards: words learned by sight, in two modes a grown-up switches between.
+// Flashcards: words learned by sight, in three modes a grown-up switches between.
 // Each word keeps its own capitals (I, Mr, Mrs, Christmas); everything else is lowercase.
 // colour: the card border and tile edge. tint: the tile fill. Pale colours get an ink outline in kids.css.
 export const flashModes = [
   { id: 'r', label: 'Tricky (R)' },
+  { id: '1', label: 'Tricky (1)' },
   { id: '2', label: 'Tricky (2)' }
 ];
 
@@ -28,6 +29,15 @@ export const flashDecks = [
     words: ['all', 'are', 'be', 'down', 'for', 'he', 'her', 'look', 'me', 'my', 'now', 'see', 'she', 'they', 'too', 'was', 'we', 'with', 'you'] },
   { id: 'green', mode: 'r', label: 'Green', colour: '#00B050', tint: '#C4D79B',
     words: ['children', 'come', 'do', 'have', 'like', 'little', 'one', 'out', 'said', 'some', 'so', 'were', 'there', 'what', 'when', 'went'] },
+  // Tricky (1): the Year 1 common exception words, in curriculum order; colours from the first four of Tricky (2)
+  { id: 'y1t1', mode: '1', label: 'Tricky 1', colour: '#0E9AA7', tint: '#C3E6E9',
+    words: ['the', 'a', 'do', 'to', 'today', 'of', 'said', 'says', 'are', 'were', 'was'] },
+  { id: 'y1t2', mode: '1', label: 'Tricky 2', colour: '#FF6B6B', tint: '#FFDADA',
+    words: ['is', 'his', 'has', 'I', 'you', 'your', 'they', 'be', 'he', 'me', 'she', 'we'] },
+  { id: 'y1t3', mode: '1', label: 'Tricky 3', colour: '#3D348B', tint: '#CECCE2',
+    words: ['no', 'go', 'so', 'by', 'my', 'here', 'there', 'where', 'love', 'come', 'some'] },
+  { id: 'y1t4', mode: '1', label: 'Tricky 4', colour: '#FF9F43', tint: '#FFE7D0',
+    words: ['one', 'once', 'ask', 'friend', 'school', 'put', 'push', 'pull', 'full', 'house', 'our'] },
   { id: 'tricky1', mode: '2', label: 'Tricky 1', colour: '#0E9AA7', tint: '#C3E6E9',
     words: ['after', 'again', 'any', 'bath', 'beautiful', 'because', 'behind', 'both', 'break', 'busy', 'child', 'children', 'Christmas'] },
   { id: 'tricky2', mode: '2', label: 'Tricky 2', colour: '#FF6B6B', tint: '#FFDADA',

@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Picture files for the game, with sources and licences in `static/kids/img/CREDITS.md`.
 - Match can combine word sets: set tiles toggle, so one or more sets can be chosen, and a "mix" tile chooses them all. Sizes follow the combined word count.
 - Second game, Flashcards: one sight word at a time, large, in coloured decks. Next and back by tap, swipe or keyboard, an optional speaker button, and an "All done!" screen. Two word modes, switched by a grown-up behind a press-and-hold button, each with an "All" deck; a Focus deck of words a grown-up picks; mixed decks show each card in its group colour. A grown-up can mark decks with a rosette. Not a quiz: no score, no timer, and nothing leaves the device.
+- Flashcards: a third word mode, Tricky (1), with the Year 1 common exception words from the national curriculum in four decks, between the two existing modes.
+- Flashcards: an "i" button beside the grown-ups cog opens a bubble with a "How to use" guide for children and grown-ups. A plain tap opens it; it changes nothing. A host page can add its own sections to the bubble.
 
 ### Changed
 - Family page: reads the account's role after sign-in. Child accounts go to `/kids/`; an account without a role is asked to sign out and sign in again.

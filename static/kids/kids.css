@@ -265,9 +265,55 @@ img { display: block; }
 
 /* Deck picker */
 .flash-picker { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
-.flash-head { flex: none; min-height: var(--home); display: flex; align-items: center; padding: 0 calc(var(--touch) + var(--edge)) 0 calc(var(--home) + var(--edge)); }
-.flash-mode { margin: 0; font-size: clamp(26px, 4.6vmin, 40px); line-height: 1.2; color: var(--indigo); }
+.flash-head { flex: none; min-height: var(--home); display: flex; align-items: center; padding: 0 calc(2 * var(--touch) + var(--edge)) 0 calc(var(--home) + var(--edge)); }
+.flash-mode { margin: 0; min-width: 0; font-size: clamp(26px, 4.6vmin, 40px); line-height: 1.2; color: var(--indigo); }
 .cog.flash-cog { top: 4px; right: 0; }
+@media (max-width: 360px) { .flash-mode { font-size: 22px; } } /* "Tricky" fits between Home and the two buttons on a 320 px phone */
+
+/* Info: a plain button left of the cog, and a bubble under it */
+.flash-info-btn {
+  position: absolute; top: 4px; right: calc(var(--touch) + 4px);
+  width: var(--touch); height: var(--touch); padding: 0;
+  border: 0; border-radius: 50%; background: transparent; color: var(--ink-soft);
+  cursor: pointer; touch-action: manipulation;
+}
+.flash-info-btn svg { display: block; width: 100%; height: 100%; padding: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; opacity: .7; }
+.flash-info-btn svg .fill { fill: currentColor; stroke: none; }
+.flash-info-btn[aria-expanded="true"] { background: #FFF1C4; color: var(--ink); }
+.flash-info-btn[aria-expanded="true"] svg { opacity: 1; }
+.flash-info {
+  position: absolute; z-index: 10; top: calc(4px + var(--touch) + 12px); right: 0;
+  width: min(560px, 100%); max-height: min(80vh, calc(100% - var(--touch) - 16px));
+  display: flex; flex-direction: column;
+  background: var(--white); border: 4px solid var(--ink); border-radius: 24px; box-shadow: 0 6px 0 var(--ink);
+  animation: fade-in .15s linear;
+}
+.flash-info:focus { outline: none; } /* focus lands on the bubble itself so it is read out; the panel's own border marks it */
+/* The pointer, under the centre of the "i" button: its centre is 1.5 touch + 4px from the right; less the 4px border and half the pointer */
+.flash-info::before, .flash-info::after { content: ''; position: absolute; right: calc(1.5 * var(--touch) - 14px); border: 14px solid transparent; border-top: 0; }
+.flash-info::before { top: -18px; border-bottom: 14px solid var(--ink); }
+.flash-info::after { top: -12px; border-bottom: 14px solid var(--white); }
+.flash-info-close {
+  position: absolute; top: 4px; right: 4px; z-index: 1;
+  width: var(--touch); height: var(--touch); padding: 0;
+  border: 0; border-radius: 18px; background: transparent; color: var(--ink);
+  font-family: inherit; font-size: 40px; line-height: 1; cursor: pointer; touch-action: manipulation;
+}
+.flash-info-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 20px 16px; }
+.flash-info-section { border-top: 2px solid rgba(31, 42, 68, .15); }
+.flash-info-section:first-child { border-top: 0; }
+.flash-info-section > summary {
+  display: flex; align-items: center; gap: 12px; min-height: var(--touch); padding-right: var(--touch);
+  font-size: 26px; font-weight: 700; color: var(--indigo); cursor: pointer; list-style: none;
+}
+.flash-info-section > summary::-webkit-details-marker { display: none; }
+.flash-info-section > summary::before { content: ''; flex: none; width: 0; height: 0; border: 9px solid transparent; border-left: 13px solid currentColor; border-right: 0; transition: transform .15s; }
+.flash-info-section[open] > summary::before { transform: rotate(90deg); }
+.flash-info-section h3 { margin: 6px 0 4px; font-size: 21px; }
+.flash-info-section ul { margin: 0 0 8px; padding-left: 1.2em; }
+.flash-info-section li { margin: 4px 0; }
+.flash-info-section p { margin: 8px 0; }
+.flash-info-section a { color: var(--teal-dk); font-weight: 700; }
 .flash-decks {
   flex: 1 1 auto; min-height: 0;
   display: grid; gap: 16px; padding: 4px;
@@ -296,7 +342,14 @@ img { display: block; }
 /* Grown-ups panel */
 .corner-panel.flash-panel-body { width: min(760px, 100%); overflow: hidden; }
 .flash-modes { display: flex; gap: 12px; }
-.corner-panel .flash-modes .btn { flex: 1 1 0; width: auto; padding: 10px 12px; }
+.corner-panel .flash-modes .btn { flex: 1 1 0; width: auto; padding: 8px 10px; line-height: 1.1; text-align: center; }
+/* Three mode buttons on a narrow phone: less padding, and "Tricky (R)" may wrap onto two lines */
+@media (max-width: 480px) {
+  .corner.flash-panel { padding: 8px; }
+  .corner-panel.flash-panel-body { padding: 16px; }
+  .flash-modes { gap: 8px; }
+  .corner-panel .flash-modes .btn { padding: 6px; font-size: 20px; }
+}
 .mode-btn { background: var(--white); border-color: var(--ink); }
 .mode-btn[aria-pressed="true"] { background: #FFF1C4; border-color: var(--teal-dk); box-shadow: inset 0 0 0 4px var(--teal-dk); }
 .flash-section-title { margin: 4px 0 0; font-size: 24px; }
@@ -370,4 +423,6 @@ img { display: block; }
   .progress-fill { transition: none; }
   .btn:active, .tile:active, .home-btn:active, .deck-tile:active, .flash-btn:active { transform: none; }
   .flash-card.slide-next, .flash-card.slide-back { animation: fade-in .2s linear; }
+  .flash-info { animation: none; }
+  .flash-info-section > summary::before { transition: none; }
 }

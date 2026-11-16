@@ -1,6 +1,7 @@
 // Flashcards: one sight word at a time, large. Not a quiz: no score, no timer, nothing recorded.
 // A grown-up (2 s press-and-hold) switches the mode, picks Focus words and marks decks passed in class
-// with a rosette; all of it stays on this device.
+// with a rosette; all of it stays on this device. An "i" bubble on the picker says how to use it; a shell can add
+// sections to it with an optional ctx.info() that returns an element.
 // Deck order and stepping are pure functions; the DOM code below only renders them.
 import { flashModes, flashDecks } from '../data/words.js';
 
@@ -63,6 +64,24 @@ const ROSETTE = `<svg viewBox="0 0 48 56" aria-hidden="true"><g stroke="#1F2A44"
 <path d="M15 30 8 53l8-4 5 7 5-22z" fill="#3D348B"/><path d="M33 30l7 23-8-4-5 7-5-22z" fill="#C73E3E"/>
 <path fill="#FFC93C" d="M24 2l4.2 4.6 6-1.6 1.6 6 6 1.6-1.6 6L44.8 23l-4.6 4.2 1.6 6-6 1.6-1.6 6-6-1.6L24 44l-4.2-4.6-6 1.6-1.6-6-6-1.6 1.6-6L3.2 23l4.6-4.2-1.6-6 6-1.6 1.6-6 6 1.6z"/>
 <circle cx="24" cy="23" r="9.5" fill="#FFFFFF"/></g><path d="M19.5 23.5l3 3 6-6.5" fill="none" stroke="#2A7A44" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const INFO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 10.5v6.5"/><circle class="fill" cx="12" cy="7.2" r="1.4"/></svg>';
+// The built-in "How to use" section of the info bubble
+const HOW_TO = [
+  ['For your child', [
+    'Pick a deck, then say each word out loud.',
+    'Tap the card, swipe, or press the arrow for the next word. The left arrow goes back.',
+    'The speaker button reads the word, on devices that can.',
+    'There is no score and no timer.'
+  ]],
+  ['For grown-ups', [
+    'Press and hold the cog for two seconds to open the grown-ups panel.',
+    'Switch between year groups at the top.',
+    'Tap any words your child finds hard. They appear as a Focus deck.',
+    'Mark a deck "Passed in class" to add a rosette.',
+    '"All" plays every word for the year.'
+  ]]
+];
+const HOW_TO_END = 'Everything is saved on this device only.';
 const MIXED_COLOUR = '#1F2A44', MIXED_TINT = '#FFFFFF';
 // Hard stripes of the mode's deck colours, for the All tile's edge
 const stripes = decks => `linear-gradient(135deg, ${decks.map((d, i) => `${d.colour} ${(i * 100 / decks.length).toFixed(2)}% ${((i + 1) * 100 / decks.length).toFixed(2)}%`).join(', ')})`;
@@ -107,7 +126,64 @@ function mount(container, ctx) {
     const cog = button('cog flash-cog');
     cog.setAttribute('aria-label', 'Grown-ups: press and hold');
     cog.innerHTML = COG;
-    holdToOpen(cog, openPanel);
+    holdToOpen(cog, () => { closeInfo(false); openPanel(); });
+
+    // Info bubble: a plain tap opens it; ×, a tap outside, Escape or a second tap closes it
+    const infoBtn = button('flash-info-btn');
+    infoBtn.innerHTML = INFO;
+    infoBtn.setAttribute('aria-label', 'How to use');
+    infoBtn.setAttribute('aria-expanded', 'false');
+    infoBtn.setAttribute('aria-controls', 'flash-info');
+    let bubble = null;
+    const closeInfo = (refocus = true) => {
+      if (!bubble) return;
+      bubble.remove(); bubble = null;
+      infoBtn.setAttribute('aria-expanded', 'false');
+      if (refocus && infoBtn.isConnected) infoBtn.focus({ preventScroll: true });
+    };
+    const openInfo = () => {
+      bubble = infoBubble();
+      wrap.append(bubble);
+      infoBtn.setAttribute('aria-expanded', 'true');
+      bubble.focus({ preventScroll: true });
+    };
+    infoBtn.addEventListener('click', () => (bubble ? closeInfo() : openInfo()));
+    // A tap outside: focus goes back to "i" unless the tap lands on something that takes focus itself
+    listen(document, 'pointerdown', e => {
+      if (!bubble || bubble.contains(e.target) || infoBtn.contains(e.target)) return;
+      closeInfo(false);
+      if (!(e.target instanceof Element && e.target.closest('button, a, input, select, textarea, [tabindex]'))) setTimeout(() => { if (infoBtn.isConnected) infoBtn.focus({ preventScroll: true }); }, 0);
+    }, true);
+    listen(document, 'keydown', e => { if (e.key === 'Escape' && bubble) { e.preventDefault(); closeInfo(); } });
+    onScreen(() => closeInfo(false));
+
+    function infoBubble() {
+      const box = el('div', 'flash-info');
+      box.id = 'flash-info';
+      box.tabIndex = -1;
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-label', 'Information');
+      const x = button('flash-info-close', '×');
+      x.setAttribute('aria-label', 'Close');
+      x.addEventListener('click', () => closeInfo());
+      const body = el('div', 'flash-info-body');
+      const how = el('details', 'flash-info-section');
+      how.open = true;
+      const text = el('div', 'flash-info-text');
+      HOW_TO.forEach(([heading, items]) => {
+        const list = el('ul');
+        list.append(...items.map(t => el('li', '', t)));
+        text.append(el('h3', '', heading), list);
+      });
+      text.append(el('p', '', HOW_TO_END));
+      how.append(el('summary', '', 'How to use'), text);
+      body.append(how);
+      if (typeof ctx.info === 'function') {
+        try { const extra = ctx.info(); if (extra instanceof Node) body.append(extra); } catch (e) { /* the built-in section still shows */ }
+      }
+      box.append(x, body);
+      return box;
+    }
 
     const tiles = el('div', 'flash-decks');
     const focusWords = prefs.focus[prefs.mode];
@@ -128,7 +204,7 @@ function mount(container, ctx) {
       b.addEventListener('click', () => { prefs.deck = deck.id; store(); play(deck.id); });
       return b;
     }));
-    wrap.append(head, tiles, cog);
+    wrap.append(head, tiles, infoBtn, cog);
     root.replaceChildren(wrap);
   }
 

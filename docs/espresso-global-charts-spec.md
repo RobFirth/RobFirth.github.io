@@ -71,26 +71,32 @@ With every bag included, a colour per bag would run out fast. Proposal:
 2. **Shot time vs days off roast:** x = days off roast, y = shot time, the 25–32 s band, one line per bag.
    Caption: `Shot time by days off roast · one line per bag`.
 
-- Shared x range across both charts: `min(0, earliest) … max(14, latest) + 0.5`.
+- Shared x range across both charts: from `min(0, earliest) − 0.5` to `max(14, latest) + 0.5`, **capped at day 42 (6 weeks)**. A bag still in use near its best-before would otherwise squash the fresh bags.
+  - When shots run past the cap, their lines run off the right edge (Plotly clips them, so the direction still shows). A note at the top-right edge of both charts says `▸ 8 shots after day 42`, and a **`6 weeks` | `All`** switch appears. All shows the full range. The choice is remembered in `espresso.ageRange`, defaulting to 6 weeks. The switch redraws only the two Ageing charts.
+  - The bean page's Dial-in chart is not capped: it shows one bag, so its full range is the useful one.
+- A **`Caff` | `Decaf` | `All`** switch filters both Ageing charts. All is the default, remembered in `espresso.ageSplit`. A side with no shots is disabled, and a saved empty side falls back to All. Bags keep their Target colours. The cap, the edge note and the "without a roast date" count follow the filtered shots, so a long-lived decaf bag doesn't cap the Caff view. The switch redraws only the two Ageing charts.
 - Bags without a roast date are left out, with a muted note under the section heading: `2 bags without a roast date aren't shown.` (pluralised; omitted when 0).
 - If no bag has a roast date, the section shows only that note, and no charts.
 
 ### Section 3 — Heat maps: where shots cluster
 
-- A **`Caff` | `Decaf`** switch (`.crossword-tabs`), defaulting to whichever has more shots. Remember it in `espresso.heatSplit`. When one side has no shots, that option is disabled.
-- A second switch, **`Coarse` | `Fine`**, sets the bin size. Coarse is the default (**3 s** for time, **0.2** for ratio), and Fine is 2 s and 0.1. Grind always gets one bin per setting. Remember it in `espresso.heatBins`. Changing either switch redraws only the two heat maps.
-- Two `histogram2d` charts (in the full Plotly bundle we already load):
-  1. **Grind × time:** x = grind, one bin per setting; y = shot time, in time bins. Caption: `Grind × shot time · <n> shots`.
-  2. **Time × ratio:** x = shot time, in time bins; y = ratio, in ratio bins. The target box drawn as an outline on top. Caption: `Shot time × ratio · <n> shots`.
-- Colour scale from `--chart-seq-light` → `--chart-seq-dark` (as the tracker uses), empty bins transparent (`zmin: 1`, so 0 isn't coloured). **No colour bar** (`showscale: false`): these show where shots cluster, not a measurement, and the tooltip gives the count.
-- Tooltip: `G6 · 27–30s: 5 shots` / `27–30s · 1:1.8–2.0: 3 shots` (bin edges follow the bin size).
+Smoothed density contours, not binned counts (changed after the first build; see Review decisions).
+
+- A **`Caff` | `Decaf` | `All`** switch (`.crossword-tabs`), defaulting to All, as on the Ageing charts. Remember it in `espresso.heatSplit`. A side with no shots is disabled, and a saved empty side falls back to All.
+- A **`Smooth` | `Detailed`** switch sets how far each shot spreads (one standard deviation): Smooth is grind 0.8, time 2.5 s, ratio 0.12; Detailed is grind 0.5, time 1.5 s, ratio 0.07. Smooth is the default, remembered in `espresso.heatSmoothing`. Either switch redraws only the two heat maps.
+- Density: each shot adds a Gaussian bump of height 1 on a 50 × 50 grid padded by 2.5 spreads. The value reads as roughly "shots nearby": about 1 by a lone shot, about 2 where two overlap.
+- Two filled `contour` charts:
+  1. **Grind × time.** Caption: `Grind × shot time · <n> shots`.
+  2. **Time × ratio**, with the target box drawn as a dashed outline on top. Caption: `Shot time × ratio · <n> shots`.
+- **Viridis** (perceptually uniform): dark purple where few shots are nearby, yellow where many are. Below a floor of 0.25 (a quarter of one shot's peak), the plot is left clear, so empty areas show the card. **No colour bar.**
+- Each shot is drawn on top as a faint white dot, which carries the tooltip (bean, then the shot). The contours themselves have no tooltip.
 
 ## Pure helpers (testable without Plotly)
 
 - `daysOffRoast(shot, bean)` → number | `null`.
 - `beanColours(beans, lastShotMap)` → `Map<beanId, colour | 'older'>`, by recency.
 - `globalShots(beans, shots)` → plotted shots with `bean`, `n` (number within its bean), `daysOff`, `opacity` (recency across all), `isLatest` (overall newest).
-- `binCounts(values, binWidth)` is optional; Plotly can bin itself. Use whichever is easier to test.
+- `densityGrid(points, hx, hy, n)` → `{ x, y, z, max }`; `densityColourscale(max)` → viridis above the floor, clear below; `ageRange(days, mode)` → `{ range, beyond }`.
 
 ## Out of scope
 
@@ -106,6 +112,10 @@ With every bag included, a colour per bag would run out fast. Proposal:
 3. **Heat-map bins:** coarser by default (3 s, 0.2), with a Coarse / Fine switch (2 s, 0.1).
 4. **Colour bar:** none. The heat maps are a visual guide, not a statistical measure.
 5. **Grind line:** steps (`hv`).
+6. **Heat maps, after the first build:** smoothed density contours in viridis instead of binned cells. Smooth / Detailed replaces Coarse / Fine. Faint dots show each shot.
+7. **Long-lived bags:** the Ageing charts are capped at 6 weeks, with an edge note and a 6 weeks / All switch. The bean page's Dial-in chart stays uncapped.
+8. **Ageing split:** Caff / Decaf / All on the Ageing charts, since the long-lived bags are usually decaf.
+9. **All everywhere:** the heat maps' Caff / Decaf switch gains All, which is now the default there too.
 
 ## Acceptance checks
 
@@ -124,7 +134,7 @@ With every bag included, a colour per bag would run out fast. Proposal:
 - [ ] Charts stacked in Target / Ageing / Heat maps sections; all drawn on open, none while closed; closing the card, opening a bean or leaving the view purges them.
 - [ ] Target: every plotted shot; target box; 4 most recent bags coloured in list order, the rest "Older bags"; overall newest shot ringed and labelled.
 - [ ] Ageing: both charts share an x range; one line per bag with a roast date; the "N bags without a roast date" note is correct and pluralised; only the note when no bag has a date.
-- [ ] Heat maps: Caff/Decaf switch defaults to the larger side and disables an empty side; Coarse (3 s, 0.2) by default and Fine (2 s, 0.1) on the switch, remembered; grind one bin per setting; target outline on time × ratio; empty bins uncoloured; no colour bar; switches redraw only the heat maps.
+- [ ] Heat maps: Caff/Decaf/All switch defaults to All and disables an empty side; smoothed density contours in viridis, clear below the floor, no colour bar; Smooth by default and Detailed on the switch, remembered; each shot as a faint dot carrying the tooltip; target outline on time × ratio; switches redraw only the heat maps.
 - [ ] User text (bean labels) escaped in legends, tooltips and notes.
 
 ### Everywhere

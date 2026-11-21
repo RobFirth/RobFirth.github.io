@@ -1798,6 +1798,17 @@
 
           <h3 class="espresso-chart-section">Ageing</h3>
           <p id="espresso-global-age-note" class="espresso-chart-caption hidden"></p>
+          <div class="espresso-switches">
+            <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Caff, decaf or all">
+              <button type="button" class="crossword-tab" role="tab" id="espresso-agesplit-caff" onclick="setAgeSplit('caff')">Caff</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-agesplit-decaf" onclick="setAgeSplit('decaf')">Decaf</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-agesplit-all" onclick="setAgeSplit('all')">All</button>
+            </div>
+            <div id="espresso-age-switch" class="crossword-tabs espresso-switch hidden" role="tablist" aria-label="Days shown">
+              <button type="button" class="crossword-tab" role="tab" id="espresso-age-window" onclick="setAgeRange('window')">6 weeks</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-age-all" onclick="setAgeRange('all')">All</button>
+            </div>
+          </div>
           <div id="espresso-global-age-charts">
             <p class="espresso-chart-caption">Grind by days off roast · one line per bag</p>
             <div id="espresso-global-grind" class="chart-box"></div>
@@ -1810,10 +1821,11 @@
             <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Caff or decaf">
               <button type="button" class="crossword-tab" role="tab" id="espresso-heat-caff" onclick="setHeatSplit('caff')">Caff</button>
               <button type="button" class="crossword-tab" role="tab" id="espresso-heat-decaf" onclick="setHeatSplit('decaf')">Decaf</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-heat-all" onclick="setHeatSplit('all')">All</button>
             </div>
-            <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Bin size">
-              <button type="button" class="crossword-tab" role="tab" id="espresso-heat-coarse" onclick="setHeatBins('coarse')">Coarse</button>
-              <button type="button" class="crossword-tab" role="tab" id="espresso-heat-fine" onclick="setHeatBins('fine')">Fine</button>
+            <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Smoothing">
+              <button type="button" class="crossword-tab" role="tab" id="espresso-heat-smooth" onclick="setHeatSmoothing('smooth')">Smooth</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-heat-detailed" onclick="setHeatSmoothing('detailed')">Detailed</button>
             </div>
           </div>
           <p id="espresso-global-heat-grind-caption" class="espresso-chart-caption"></p>
@@ -2802,9 +2814,7 @@
       setterOther: v('--chart-setter-other'),
       setterNone: v('--text-dim'),
       accent: v('--accent'),
-      target: v('--chart-target'),
-      seqLight: v('--chart-seq-light'),
-      seqDark: v('--chart-seq-dark')
+      target: v('--chart-target')
     };
   }
 
@@ -3323,8 +3333,12 @@
     'espresso-global-heat-grind', 'espresso-global-heat-ratio'];
   const AGE_CHART_IDS = ['espresso-global-grind', 'espresso-global-agetime'];
   const HEAT_CHART_IDS = ['espresso-global-heat-grind', 'espresso-global-heat-ratio'];
-  // Heat-map bin sizes: seconds and ratio. Grind is always one bin per setting.
-  const HEAT_BINS = { coarse: { time: 3, ratio: 0.2 }, fine: { time: 2, ratio: 0.1 } };
+  // Heat-map smoothing: how far each shot spreads (one standard deviation), in each axis's units
+  const HEAT_SMOOTHING = { smooth: { grind: 0.8, time: 2.5, ratio: 0.12 }, detailed: { grind: 0.5, time: 1.5, ratio: 0.07 } };
+  // Viridis, perceptually uniform: dark purple for few shots nearby, yellow for many
+  const VIRIDIS = ['#440154', '#482878', '#3e4989', '#31688e', '#26828e', '#1f9e89', '#35b779', '#6ece58', '#b5de2b', '#fde725'];
+  const AGE_WINDOW_DAYS = 42; // the Ageing charts stop here unless "All" is picked; a long-lived bag runs off the edge
+  const DENSITY_FLOOR = 0.25; // below this (a quarter of one shot's peak) the plot is left clear
   const DAY_MS = 86400000;
 
   let espressoBeans = [];      // every bean, as fetched
@@ -3340,8 +3354,10 @@
   // Per-device chart choices; each falls back to its default if storage fails
   let espressoDialinAxis = readPref('espresso.dialinAxis', ['shot', 'roast'], 'shot');
   let espressoGlobalOpen = readPref('espresso.globalChartsOpen', ['1', '0'], '0') === '1';
-  let espressoHeatSplit = readPref('espresso.heatSplit', ['caff', 'decaf'], null); // null: the side with more shots
-  let espressoHeatBins = readPref('espresso.heatBins', ['coarse', 'fine'], 'coarse');
+  let espressoHeatSplit = readPref('espresso.heatSplit', ['caff', 'decaf', 'all'], 'all');
+  let espressoAgeRange = readPref('espresso.ageRange', ['window', 'all'], 'window');
+  let espressoAgeSplit = readPref('espresso.ageSplit', ['caff', 'decaf', 'all'], 'all');
+  let espressoHeatSmoothing = readPref('espresso.heatSmoothing', ['smooth', 'detailed'], 'smooth');
 
   wireClockInput(document.getElementById('espresso-shot-time'));
 
@@ -4081,26 +4097,25 @@
       opacity: last ? Math.round((0.2 + 0.65 * i / last) * 100) / 100 : 0.85 }));
   }
 
-  // Shots on a grid of bins: counts, bin centres, and z with empty bins as null
-  // (drawn transparent). Bins start on a multiple of their size, so the edges are round.
-  function binStart(values, size) {
-    return Math.round(Math.floor(Math.min(...values) / size + 1e-9) * size * 1e6) / 1e6;
+  // A smoothed "shots nearby" surface: each shot adds a Gaussian bump of height 1
+  // (so the value near a lone shot is about 1, near two overlapping shots about 2),
+  // spread hx and hy in the axes' units. An n × n grid padded by 2.5 spreads.
+  function densityGrid(points, hx, hy, n = 50) {
+    const xs = points.map(p => p.x), ys = points.map(p => p.y);
+    const axis = (vals, h) => { const lo = Math.min(...vals) - 2.5 * h, hi = Math.max(...vals) + 2.5 * h;
+      return Array.from({ length: n }, (_, i) => lo + (hi - lo) * i / (n - 1)); };
+    const x = axis(xs, hx), y = axis(ys, hy);
+    const z = y.map(gy => x.map(gx => points.reduce((sum, p) =>
+      sum + Math.exp(-0.5 * (((gx - p.x) / hx) ** 2 + ((gy - p.y) / hy) ** 2)), 0)));
+    return { x, y, z, max: Math.max(...z.flat()) };
   }
 
-  function binGrid(points, xBin, yBin) {
-    const idx = (v, b) => Math.floor((v - b.start) / b.size + 1e-9);
-    const nx = Math.max(...points.map(p => idx(p.x, xBin))) + 1, ny = Math.max(...points.map(p => idx(p.y, yBin))) + 1;
-    const counts = Array.from({ length: ny }, () => new Array(nx).fill(0));
-    for (const p of points) counts[idx(p.y, yBin)][idx(p.x, xBin)]++;
-    const edge = (b, i) => Math.round((b.start + i * b.size) * 1e6) / 1e6;
-    return {
-      counts,
-      x: Array.from({ length: nx }, (_, i) => edge(xBin, i) + xBin.size / 2),
-      y: Array.from({ length: ny }, (_, i) => edge(yBin, i) + yBin.size / 2),
-      xEdges: Array.from({ length: nx + 1 }, (_, i) => edge(xBin, i)),
-      yEdges: Array.from({ length: ny + 1 }, (_, i) => edge(yBin, i)),
-      z: counts.map(row => row.map(c => c || null))
-    };
+  // Viridis from the floor up; clear below it, so empty areas show the card
+  function densityColourscale(max) {
+    // Positions must rise strictly from 0 to exactly 1, or Plotly drops the scale for its default
+    const f = Math.min(DENSITY_FLOOR / max, 0.5), last = VIRIDIS.length - 1;
+    return [[0, 'rgba(0,0,0,0)'], [f * 0.999, 'rgba(0,0,0,0)'],
+      ...VIRIDIS.map((c, i) => [i === last ? 1 : f + (1 - f) * i / last, c])];
   }
 
   function shortBeanLabel(bean) {
@@ -4187,7 +4202,30 @@
     });
   }
 
-  function drawGlobalAgeing(gs, t, colours) {
+  // Caff, decaf or all, for the Ageing charts and the heat maps alike: the saved
+  // choice if that side has shots, else all. `n` counts each side for the switch.
+  function splitShots(gs, saved) {
+    const n = { caff: gs.filter(s => !s.bean.decaf).length, decaf: gs.filter(s => s.bean.decaf).length };
+    const side = saved !== 'all' && n[saved] ? saved : 'all';
+    return { side, n, shots: side === 'all' ? gs : gs.filter(s => !!s.bean.decaf === (side === 'decaf')) };
+  }
+
+  function markSplit(prefix, { side, n }) {
+    markSwitch([{ id: `${prefix}-caff`, on: side === 'caff', disabled: !n.caff },
+      { id: `${prefix}-decaf`, on: side === 'decaf', disabled: !n.decaf }, { id: `${prefix}-all`, on: side === 'all' }]);
+  }
+
+  function setAgeSplit(side) {
+    espressoAgeSplit = side;
+    writePref('espresso.ageSplit', side);
+    setAgeRange(espressoAgeRange); // same redraw: only the Ageing charts
+  }
+
+  // Bags keep the colours they have on the Target chart, whichever side is shown;
+  // the window, its note and the undated count follow the side.
+  function drawGlobalAgeing(allShots, t, colours) {
+    const split = splitShots(allShots, espressoAgeSplit), gs = split.shots;
+    markSplit('espresso-agesplit', split);
     const dated = gs.filter(s => s.daysOff !== null);
     const undated = new Set(gs.filter(s => s.daysOff === null).map(s => s.bean.id)).size;
     const note = document.getElementById('espresso-global-age-note');
@@ -4195,11 +4233,17 @@
     note.classList.toggle('hidden', !undated);
     const box = document.getElementById('espresso-global-age-charts');
     box.classList.toggle('hidden', !dated.length);
-    if (!dated.length) return purgeCharts(AGE_CHART_IDS);
+    if (!dated.length) { document.getElementById('espresso-age-switch').classList.add('hidden'); return purgeCharts(AGE_CHART_IDS); }
 
     const days = dated.map(s => s.daysOff), grinds = dated.map(s => s.grind);
-    const range = [Math.min(0, Math.min(...days)) - 0.5, Math.max(14, Math.max(...days)) + 0.5]; // shared by both
-    const axis = l => { l.xaxis.range = range; l.xaxis.title = { text: 'days off roast', font: { size: 11 } }; l.xaxis.tickformat = 'd'; return legendLayout(l); };
+    const { range, beyond } = ageRange(days, espressoAgeRange);
+    markSwitch([{ id: 'espresso-age-window', on: espressoAgeRange !== 'all' }, { id: 'espresso-age-all', on: espressoAgeRange === 'all' }]);
+    document.getElementById('espresso-age-switch').classList.toggle('hidden', !ageRange(days, 'window').beyond);
+    // Lines run off the edge (clipped, so the direction shows); a note says how many shots are past it
+    const edge = beyond ? [{ xref: 'paper', yref: 'paper', x: 1, y: 1, xanchor: 'right', yanchor: 'top', showarrow: false,
+      text: `▸ ${beyond} shot${beyond === 1 ? '' : 's'} after day ${AGE_WINDOW_DAYS}`, font: { size: 10, color: t.text }, bgcolor: t.card }] : [];
+    const axis = l => { l.xaxis.range = range; l.xaxis.title = { text: 'days off roast', font: { size: 11 } }; l.xaxis.tickformat = 'd';
+      l.annotations = edge; return legendLayout(l); };
 
     const grind = axis(espressoLayout(t));
     grind.yaxis.range = [Math.max(0, Math.min(...grinds) - 1), Math.min(17, Math.max(...grinds) + 1)];
@@ -4214,62 +4258,72 @@
     Plotly.react('espresso-global-agetime', ageTraces(dated, colours, 'timeSeconds', 'linear'), time, CHART_CONFIG);
   }
 
-  // Caff or decaf: the saved side if it has shots, else the side with more
-  function heatSide(gs) {
-    const n = { caff: gs.filter(s => !s.bean.decaf).length, decaf: gs.filter(s => s.bean.decaf).length };
-    const side = espressoHeatSplit && n[espressoHeatSplit] ? espressoHeatSplit : n.decaf > n.caff ? 'decaf' : 'caff';
-    return { side, n };
+  // Shared x range for both Ageing charts: from day 0 (or earlier, for a roast date
+  // after the shot) to the last shot, at least 2 weeks, and capped at the window
+  // unless "All" is picked. `beyond` counts shots past the right edge.
+  function ageRange(days, mode) {
+    const lo = Math.min(0, Math.min(...days)) - 0.5, last = Math.max(14, Math.max(...days));
+    const hi = (mode === 'all' ? last : Math.min(last, AGE_WINDOW_DAYS)) + 0.5;
+    return { range: [lo, hi], beyond: days.filter(d => d > hi).length };
+  }
+
+  function setAgeRange(mode) {
+    if (mode !== espressoAgeRange) writePref('espresso.ageRange', mode);
+    espressoAgeRange = mode;
+    const gs = espressoAllShots ? globalShots(espressoBeans, espressoAllShots) : [];
+    if (espressoGlobalOpen && gs.length >= 3 && !plotlyMissing('espresso-global-msg')) { const t = chartTheme(); drawGlobalAgeing(gs, t, globalColours(gs, t)); }
   }
 
   function setHeatSplit(side) { espressoHeatSplit = side; writePref('espresso.heatSplit', side); redrawHeat(); }
 
-  function setHeatBins(bins) { espressoHeatBins = bins; writePref('espresso.heatBins', bins); redrawHeat(); }
+  function setHeatSmoothing(level) { espressoHeatSmoothing = level; writePref('espresso.heatSmoothing', level); redrawHeat(); }
 
   function redrawHeat() {
     const gs = espressoAllShots ? globalShots(espressoBeans, espressoAllShots) : [];
     if (espressoGlobalOpen && gs.length >= 3 && !plotlyMissing('espresso-global-msg')) drawGlobalHeat(gs, chartTheme());
   }
 
-  function heatTrace(t, grid, label) {
-    const max = Math.max(...grid.counts.flat());
-    return [{ type: 'heatmap', x: grid.x, y: grid.y, z: grid.z, zmin: 1, zmax: Math.max(2, max), showscale: false,
-      colorscale: [[0, t.seqLight], [1, t.seqDark]], xgap: 1, ygap: 1, hoverongaps: false,
-      text: grid.counts.map((row, j) => row.map((c, i) => `${label(i, j)}: ${c} shot${c === 1 ? '' : 's'}`)),
-      hovertemplate: '%{text}<extra></extra>' }];
+  // Filled density contours, plus each shot as a faint dot that carries the tooltip
+  function densityTraces(grid, shots, xKey, yKey) {
+    const levels = Math.max(grid.max, DENSITY_FLOOR * 2);
+    return [
+      { type: 'contour', x: grid.x, y: grid.y, z: grid.z, zmin: 0, zmax: levels, showscale: false, hoverinfo: 'skip',
+        colorscale: densityColourscale(levels), line: { width: 0 },
+        contours: { coloring: 'fill', showlines: false, start: DENSITY_FLOOR, end: levels, size: (levels - DENSITY_FLOOR) / 8 } },
+      { type: 'scatter', mode: 'markers', x: shots.map(s => s[xKey]), y: shots.map(s => s[yKey]), text: shots.map(globalShotText),
+        marker: { color: 'rgba(255,255,255,0.55)', size: 4 }, hovertemplate: '%{text}<extra></extra>' }
+    ];
   }
 
   function drawGlobalHeat(gs, t) {
-    const { side, n } = heatSide(gs), bins = HEAT_BINS[espressoHeatBins] || HEAT_BINS.coarse;
-    markSwitch([{ id: 'espresso-heat-caff', on: side === 'caff', disabled: !n.caff }, { id: 'espresso-heat-decaf', on: side === 'decaf', disabled: !n.decaf },
-      { id: 'espresso-heat-coarse', on: espressoHeatBins !== 'fine' }, { id: 'espresso-heat-fine', on: espressoHeatBins === 'fine' }]);
-    const shots = gs.filter(s => !!s.bean.decaf === (side === 'decaf'));
+    const split = splitShots(gs, espressoHeatSplit), shots = split.shots, detailed = espressoHeatSmoothing === 'detailed';
+    const h = HEAT_SMOOTHING[detailed ? 'detailed' : 'smooth'];
+    markSplit('espresso-heat', split);
+    markSwitch([{ id: 'espresso-heat-smooth', on: !detailed }, { id: 'espresso-heat-detailed', on: detailed }]);
     const count = `${shots.length} shot${shots.length === 1 ? '' : 's'}`;
     document.getElementById('espresso-global-heat-grind-caption').textContent = `Grind × shot time · ${count}`;
     document.getElementById('espresso-global-heat-ratio-caption').textContent = `Shot time × ratio · ${count}`;
-    const times = shots.map(s => s.timeSeconds), ratios = shots.map(s => s.ratio);
-    const timeBin = { start: binStart(times, bins.time), size: bins.time };
-    const secs = (g, j) => `${g.yEdges[j]}–${g.yEdges[j + 1]}s`;
+    const range = arr => [arr[0], arr[arr.length - 1]];
 
-    const gGrid = binGrid(shots.map(s => ({ x: s.grind, y: s.timeSeconds })), { start: Math.min(...shots.map(s => s.grind)) - 0.5, size: 1 }, timeBin);
+    const gGrid = densityGrid(shots.map(s => ({ x: s.grind, y: s.timeSeconds })), h.grind, h.time);
     const gl = espressoLayout(t);
-    gl.xaxis.range = [gGrid.xEdges[0], gGrid.xEdges[gGrid.xEdges.length - 1]];
+    gl.xaxis.range = range(gGrid.x);
     gl.xaxis.dtick = 1;
     gl.xaxis.title = { text: 'grind', font: { size: 11 } };
-    gl.yaxis.range = [gGrid.yEdges[0], gGrid.yEdges[gGrid.yEdges.length - 1]];
+    gl.yaxis.range = range(gGrid.y);
     gl.yaxis.title = { text: 'time (s)', font: { size: 11 } };
-    Plotly.react('espresso-global-heat-grind', heatTrace(t, gGrid, (i, j) => `G${gGrid.x[i]} · ${secs(gGrid, j)}`), gl, CHART_CONFIG);
+    Plotly.react('espresso-global-heat-grind', densityTraces(gGrid, shots, 'grind', 'timeSeconds'), gl, CHART_CONFIG);
 
-    const rGrid = binGrid(shots.map(s => ({ x: s.timeSeconds, y: s.ratio })), timeBin, { start: binStart(ratios, bins.ratio), size: bins.ratio });
+    const rGrid = densityGrid(shots.map(s => ({ x: s.timeSeconds, y: s.ratio })), h.time, h.ratio);
     const rl = espressoLayout(t), T = ESPRESSO_TARGET;
-    rl.xaxis.range = [rGrid.xEdges[0], rGrid.xEdges[rGrid.xEdges.length - 1]];
+    rl.xaxis.range = range(rGrid.x);
     rl.xaxis.title = { text: 'time (s)', font: { size: 11 } };
-    rl.yaxis.range = [rGrid.yEdges[0], rGrid.yEdges[rGrid.yEdges.length - 1]];
+    rl.yaxis.range = range(rGrid.y);
     rl.yaxis.title = { text: 'ratio', font: { size: 11 } };
     rl.yaxis.tickformat = '.1f';
     rl.shapes = [{ type: 'rect', xref: 'x', yref: 'y', x0: T.timeMin, x1: T.timeMax, y0: T.ratioMin, y1: T.ratioMax,
       fillcolor: 'rgba(0,0,0,0)', line: { color: t.target, width: 1.5, dash: 'dash' } }];
-    const rLabel = (i, j) => `${rGrid.xEdges[i]}–${rGrid.xEdges[i + 1]}s · 1:${rGrid.yEdges[j].toFixed(1)}–${rGrid.yEdges[j + 1].toFixed(1)}`;
-    Plotly.react('espresso-global-heat-ratio', heatTrace(t, rGrid, rLabel), rl, CHART_CONFIG);
+    Plotly.react('espresso-global-heat-ratio', densityTraces(rGrid, shots, 'timeSeconds', 'ratio'), rl, CHART_CONFIG);
   }
 
   function isCurrentShot(shot) {

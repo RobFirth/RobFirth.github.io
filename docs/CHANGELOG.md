@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 - Family page: reads the account's role after sign-in. Child accounts go to `/kids/`; an account without a role is asked to sign out and sign in again.
+- Espresso: the bean list shows the most recently used bean first (its newest shot, by anyone, or when it was added if later), as separate bordered tiles with a "Last shot …" line. Archived beans still sort below active ones and are dimmed. The list no longer scrolls inside its card.
 
 ---
 

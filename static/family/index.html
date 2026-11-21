@@ -1798,8 +1798,13 @@
 
           <h3 class="espresso-chart-section">Ageing</h3>
           <p id="espresso-global-age-note" class="espresso-chart-caption hidden"></p>
-          <div id="espresso-age-switch" class="espresso-switches hidden">
-            <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Days shown">
+          <div class="espresso-switches">
+            <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Caff, decaf or all">
+              <button type="button" class="crossword-tab" role="tab" id="espresso-agesplit-caff" onclick="setAgeSplit('caff')">Caff</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-agesplit-decaf" onclick="setAgeSplit('decaf')">Decaf</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-agesplit-all" onclick="setAgeSplit('all')">All</button>
+            </div>
+            <div id="espresso-age-switch" class="crossword-tabs espresso-switch hidden" role="tablist" aria-label="Days shown">
               <button type="button" class="crossword-tab" role="tab" id="espresso-age-window" onclick="setAgeRange('window')">6 weeks</button>
               <button type="button" class="crossword-tab" role="tab" id="espresso-age-all" onclick="setAgeRange('all')">All</button>
             </div>
@@ -3350,6 +3355,7 @@
   let espressoGlobalOpen = readPref('espresso.globalChartsOpen', ['1', '0'], '0') === '1';
   let espressoHeatSplit = readPref('espresso.heatSplit', ['caff', 'decaf'], null); // null: the side with more shots
   let espressoAgeRange = readPref('espresso.ageRange', ['window', 'all'], 'window');
+  let espressoAgeSplit = readPref('espresso.ageSplit', ['caff', 'decaf', 'all'], 'all');
   let espressoHeatSmoothing = readPref('espresso.heatSmoothing', ['smooth', 'detailed'], 'smooth');
 
   wireClockInput(document.getElementById('espresso-shot-time'));
@@ -4195,7 +4201,25 @@
     });
   }
 
-  function drawGlobalAgeing(gs, t, colours) {
+  // Caff, decaf or all for the Ageing charts: the saved choice if that side has shots, else all
+  function ageSide(gs) {
+    const n = { caff: gs.filter(s => !s.bean.decaf).length, decaf: gs.filter(s => s.bean.decaf).length };
+    const side = espressoAgeSplit !== 'all' && n[espressoAgeSplit] ? espressoAgeSplit : 'all';
+    return { side, n, shots: side === 'all' ? gs : gs.filter(s => !!s.bean.decaf === (side === 'decaf')) };
+  }
+
+  function setAgeSplit(side) {
+    espressoAgeSplit = side;
+    writePref('espresso.ageSplit', side);
+    setAgeRange(espressoAgeRange); // same redraw: only the Ageing charts
+  }
+
+  // Bags keep the colours they have on the Target chart, whichever side is shown;
+  // the window, its note and the undated count follow the side.
+  function drawGlobalAgeing(allShots, t, colours) {
+    const { side, n, shots: gs } = ageSide(allShots);
+    markSwitch([{ id: 'espresso-agesplit-caff', on: side === 'caff', disabled: !n.caff },
+      { id: 'espresso-agesplit-decaf', on: side === 'decaf', disabled: !n.decaf }, { id: 'espresso-agesplit-all', on: side === 'all' }]);
     const dated = gs.filter(s => s.daysOff !== null);
     const undated = new Set(gs.filter(s => s.daysOff === null).map(s => s.bean.id)).size;
     const note = document.getElementById('espresso-global-age-note');
@@ -4203,7 +4227,7 @@
     note.classList.toggle('hidden', !undated);
     const box = document.getElementById('espresso-global-age-charts');
     box.classList.toggle('hidden', !dated.length);
-    if (!dated.length) return purgeCharts(AGE_CHART_IDS);
+    if (!dated.length) { document.getElementById('espresso-age-switch').classList.add('hidden'); return purgeCharts(AGE_CHART_IDS); }
 
     const days = dated.map(s => s.daysOff), grinds = dated.map(s => s.grind);
     const { range, beyond } = ageRange(days, espressoAgeRange);
@@ -4238,8 +4262,8 @@
   }
 
   function setAgeRange(mode) {
+    if (mode !== espressoAgeRange) writePref('espresso.ageRange', mode);
     espressoAgeRange = mode;
-    writePref('espresso.ageRange', mode);
     const gs = espressoAllShots ? globalShots(espressoBeans, espressoAllShots) : [];
     if (espressoGlobalOpen && gs.length >= 3 && !plotlyMissing('espresso-global-msg')) { const t = chartTheme(); drawGlobalAgeing(gs, t, globalColours(gs, t)); }
   }

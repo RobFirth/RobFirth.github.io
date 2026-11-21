@@ -74,6 +74,7 @@ With every bag included, a colour per bag would run out fast. Proposal:
 - Shared x range across both charts: from `min(0, earliest) − 0.5` to `max(14, latest) + 0.5`, **capped at day 42 (6 weeks)**. A bag still in use near its best-before would otherwise squash the fresh bags.
   - When shots run past the cap, their lines run off the right edge (Plotly clips them, so the direction still shows). A note at the top-right edge of both charts says `▸ 8 shots after day 42`, and a **`6 weeks` | `All`** switch appears. All shows the full range. The choice is remembered in `espresso.ageRange`, defaulting to 6 weeks. The switch redraws only the two Ageing charts.
   - The bean page's Dial-in chart is not capped: it shows one bag, so its full range is the useful one.
+- A **`Caff` | `Decaf` | `All`** switch filters both Ageing charts. All is the default, remembered in `espresso.ageSplit`. A side with no shots is disabled, and a saved empty side falls back to All. Bags keep their Target colours. The cap, the edge note and the "without a roast date" count follow the filtered shots, so a long-lived decaf bag doesn't cap the Caff view. The switch redraws only the two Ageing charts.
 - Bags without a roast date are left out, with a muted note under the section heading: `2 bags without a roast date aren't shown.` (pluralised; omitted when 0).
 - If no bag has a roast date, the section shows only that note, and no charts.
 
@@ -113,6 +114,7 @@ Smoothed density contours, not binned counts (changed after the first build; see
 5. **Grind line:** steps (`hv`).
 6. **Heat maps, after the first build:** smoothed density contours in viridis instead of binned cells. Smooth / Detailed replaces Coarse / Fine. Faint dots show each shot.
 7. **Long-lived bags:** the Ageing charts are capped at 6 weeks, with an edge note and a 6 weeks / All switch. The bean page's Dial-in chart stays uncapped.
+8. **Ageing split:** Caff / Decaf / All on the Ageing charts, since the long-lived bags are usually decaf.
 
 ## Acceptance checks
 

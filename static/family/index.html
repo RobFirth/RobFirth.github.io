@@ -1055,6 +1055,25 @@
     margin: 14px 0 4px;
   }
 
+  /* Small two-way switches above a chart: the crossword tabs, compact */
+  .espresso-switches { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .crossword-tabs.espresso-switch { margin: 0; }
+  .espresso-switch .crossword-tab { padding: 6px 12px; font-size: 0.72rem; }
+  .espresso-switch .crossword-tab:disabled { opacity: 0.4; cursor: not-allowed; }
+  .espresso-switch .crossword-tab:disabled:hover { color: var(--text-muted); }
+
+  .espresso-chart-section {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin: 22px 0 0;
+  }
+
+  .espresso-chart-section:first-child { margin-top: 14px; }
+
   .espresso-origin-line,
   .espresso-roaster-notes {
     margin-top: 6px;
@@ -1765,6 +1784,45 @@
         <p id="espresso-beans-empty" class="crossword-empty hidden"></p>
         <p id="espresso-beans-msg" class="form-msg"></p>
       </div>
+
+      <!-- Charts across every bean, archived included: shown from 3 shots, collapsed by default, drawn only while open -->
+      <div id="espresso-global-card" class="crossword-card hidden">
+        <h2 class="espresso-charts-heading">
+          <button type="button" id="espresso-global-toggle" class="espresso-charts-toggle"
+            aria-expanded="false" aria-controls="espresso-global-body" onclick="toggleGlobalCharts()">Charts ▾</button>
+        </h2>
+        <div id="espresso-global-body" class="hidden">
+          <h3 class="espresso-chart-section">Target</h3>
+          <p id="espresso-global-target-caption" class="espresso-chart-caption"></p>
+          <div id="espresso-global-target" class="chart-box"></div>
+
+          <h3 class="espresso-chart-section">Ageing</h3>
+          <p id="espresso-global-age-note" class="espresso-chart-caption hidden"></p>
+          <div id="espresso-global-age-charts">
+            <p class="espresso-chart-caption">Grind by days off roast · one line per bag</p>
+            <div id="espresso-global-grind" class="chart-box"></div>
+            <p class="espresso-chart-caption">Shot time by days off roast · one line per bag</p>
+            <div id="espresso-global-agetime" class="chart-box"></div>
+          </div>
+
+          <h3 class="espresso-chart-section">Heat maps</h3>
+          <div class="espresso-switches">
+            <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Caff or decaf">
+              <button type="button" class="crossword-tab" role="tab" id="espresso-heat-caff" onclick="setHeatSplit('caff')">Caff</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-heat-decaf" onclick="setHeatSplit('decaf')">Decaf</button>
+            </div>
+            <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Bin size">
+              <button type="button" class="crossword-tab" role="tab" id="espresso-heat-coarse" onclick="setHeatBins('coarse')">Coarse</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-heat-fine" onclick="setHeatBins('fine')">Fine</button>
+            </div>
+          </div>
+          <p id="espresso-global-heat-grind-caption" class="espresso-chart-caption"></p>
+          <div id="espresso-global-heat-grind" class="chart-box"></div>
+          <p id="espresso-global-heat-ratio-caption" class="espresso-chart-caption"></p>
+          <div id="espresso-global-heat-ratio" class="chart-box"></div>
+          <p id="espresso-global-msg" class="form-msg"></p>
+        </div>
+      </div>
     </div>
 
     <!-- Bean detail -->
@@ -1831,6 +1889,13 @@
           <p id="espresso-chart-target-caption" class="espresso-chart-caption"></p>
           <div id="espresso-chart-target" class="chart-box"></div>
           <p id="espresso-chart-dialin-caption" class="espresso-chart-caption"></p>
+          <div class="espresso-switches">
+            <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Dial-in x-axis">
+              <button type="button" class="crossword-tab" role="tab" id="espresso-axis-shot" onclick="setDialinAxis('shot')">Shot no.</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-axis-roast" onclick="setDialinAxis('roast')">Days off roast</button>
+            </div>
+          </div>
+          <p id="espresso-axis-hint" class="espresso-chart-caption hidden">Add a roast date to see days off roast</p>
           <div id="espresso-chart-dialin" class="chart-box"></div>
           <p id="espresso-charts-msg" class="form-msg"></p>
         </div>
@@ -2073,6 +2138,7 @@
     viewPageViewer.classList.add('hidden');
     viewCrossword.classList.add('hidden');
     viewEspresso.classList.add('hidden');
+    if (typeof purgeEspressoAll === 'function') purgeEspressoAll(); // defined in the Espresso block
     viewTracker.classList.add('hidden');
     if (name === 'loading')  viewLoading.classList.remove('hidden');
     if (name === 'signin')    viewSignin.classList.remove('hidden');
@@ -2736,7 +2802,9 @@
       setterOther: v('--chart-setter-other'),
       setterNone: v('--text-dim'),
       accent: v('--accent'),
-      target: v('--chart-target')
+      target: v('--chart-target'),
+      seqLight: v('--chart-seq-light'),
+      seqDark: v('--chart-seq-dark')
     };
   }
 
@@ -3251,16 +3319,29 @@
   const ESPRESSO_TARGET = { timeMin: 25, timeMax: 32, ratioMin: 1.8, ratioMax: 2.2 };
   const CHARTS_OPEN_KEY = 'espresso.chartsOpen';
   const ESPRESSO_CHART_IDS = ['espresso-chart-target', 'espresso-chart-dialin'];
+  const GLOBAL_CHART_IDS = ['espresso-global-target', 'espresso-global-grind', 'espresso-global-agetime',
+    'espresso-global-heat-grind', 'espresso-global-heat-ratio'];
+  const AGE_CHART_IDS = ['espresso-global-grind', 'espresso-global-agetime'];
+  const HEAT_CHART_IDS = ['espresso-global-heat-grind', 'espresso-global-heat-ratio'];
+  // Heat-map bin sizes: seconds and ratio. Grind is always one bin per setting.
+  const HEAT_BINS = { coarse: { time: 3, ratio: 0.2 }, fine: { time: 2, ratio: 0.1 } };
+  const DAY_MS = 86400000;
 
   let espressoBeans = [];      // every bean, as fetched
   let espressoBeanRows = [];   // what the list shows; a row's data-index points here
   let espressoLastShot = new Map(); // beanId → millis of its newest shot, anyone's
+  let espressoAllShots = null;      // every shot, from the list's read; null if that read failed
   let espressoBean = null;     // the bean open in detail, null on the list
   let espressoShots = [];      // that bean's shots, newest first
   let editingBean = null;      // bean in the form, null when adding
   let editingShot = null;      // own shot in the shot form, null when logging a new one
   let confirmingShotId = null; // shot whose row is asking "Delete this shot?"
   let espressoChartsOpen = readChartsOpen(); // per device; collapsed unless remembered open
+  // Per-device chart choices; each falls back to its default if storage fails
+  let espressoDialinAxis = readPref('espresso.dialinAxis', ['shot', 'roast'], 'shot');
+  let espressoGlobalOpen = readPref('espresso.globalChartsOpen', ['1', '0'], '0') === '1';
+  let espressoHeatSplit = readPref('espresso.heatSplit', ['caff', 'decaf'], null); // null: the side with more shots
+  let espressoHeatBins = readPref('espresso.heatBins', ['coarse', 'fine'], 'coarse');
 
   wireClockInput(document.getElementById('espresso-shot-time'));
 
@@ -3400,6 +3481,7 @@
   }
 
   function closeEspresso() {
+    purgeEspressoAll();
     viewEspresso.classList.add('hidden');
     viewDashboard.classList.remove('hidden');
   }
@@ -3416,8 +3498,10 @@
         db.collection(SHOTS).get().catch(err => { console.error('Error loading shots for the bean order:', err); return null; })
       ]);
       espressoBeans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      espressoLastShot = newestShotByBean(shotSnap ? shotSnap.docs.map(d => d.data()) : []);
+      espressoAllShots = shotSnap ? shotSnap.docs.map(d => ({ id: d.id, ...d.data() })) : null;
+      espressoLastShot = newestShotByBean(espressoAllShots || []);
       renderBeanList();
+      syncGlobalCharts();
     } catch (err) {
       console.error('Error loading beans:', err);
       crosswordMsg('espresso-beans-msg', 'Couldn\'t load the beans. Please try again.', 'error');
@@ -3639,6 +3723,7 @@
 
   // ── Bean detail ──
   function setEspressoPane(detail) {
+    if (detail) purgeGlobalCharts(); // the list's charts aren't kept while a bean is open
     document.getElementById('espresso-pane-list').classList.toggle('hidden', detail);
     document.getElementById('espresso-pane-detail').classList.toggle('hidden', !detail);
   }
@@ -3731,13 +3816,14 @@
   // still pending (no server time yet) is left out rather than guessed at;
   // the next renderBeanDetail() picks it up. Opacity fades older shots,
   // 0.2 → 0.85; the newest is drawn in the accent colour instead.
-  function chartShots(shots) {
+  function chartShots(shots, bean = null) {
     const list = shots.filter(s => s.pulledAt).sort((a, b) => shotMillis(a) - shotMillis(b));
     const last = list.length - 1;
     return list.map((s, i) => ({
       ...s,
       n: i + 1,
       ratio: s.yield / s.dose, // each shot's own dose
+      daysOff: daysOffRoast(s, bean),
       isLatest: i === last,
       opacity: last ? Math.round((0.2 + 0.65 * i / last) * 100) / 100 : 0.85
     }));
@@ -3754,21 +3840,78 @@
     return segs;
   }
 
+  // Fractional days from local midnight of the roast date (as friendlyDate() reads
+  // it); negative if the date is after the shot. null without a date or a time.
+  function daysOffRoast(shot, bean) {
+    if (!bean || !bean.roastDate || !shot.pulledAt) return null;
+    return (shotMillis(shot) - new Date(`${bean.roastDate}T00:00:00`).getTime()) / DAY_MS;
+  }
+
+  // A saved per-device choice, or the fallback if it's missing, unknown or storage throws
+  function readPref(key, allowed, fallback) {
+    try { const v = localStorage.getItem(key); return allowed.includes(v) ? v : fallback; } catch (err) { return fallback; }
+  }
+
+  function writePref(key, value) {
+    try { localStorage.setItem(key, value); } catch (err) { /* stays for this page load */ }
+  }
+
   function readChartsOpen() {
-    try { return localStorage.getItem(CHARTS_OPEN_KEY) === '1'; } catch (err) { return false; }
+    return readPref(CHARTS_OPEN_KEY, ['1', '0'], '0') === '1';
   }
 
   function toggleEspressoCharts() {
     espressoChartsOpen = !espressoChartsOpen;
-    try { localStorage.setItem(CHARTS_OPEN_KEY, espressoChartsOpen ? '1' : '0'); } catch (err) { /* stays per page load */ }
+    writePref(CHARTS_OPEN_KEY, espressoChartsOpen ? '1' : '0');
     syncEspressoCharts();
+  }
+
+  // Selected and disabled states for a row of switch buttons: [{ id, on, disabled }]
+  function markSwitch(buttons) {
+    for (const b of buttons) {
+      const el = document.getElementById(b.id);
+      el.classList.toggle('active', b.on);
+      el.setAttribute('aria-selected', String(b.on));
+      el.disabled = !!b.disabled;
+    }
+  }
+
+  function plotlyMissing(msgId) {
+    if (typeof Plotly !== 'undefined') return false;
+    crosswordMsg(msgId, 'Charts couldn\'t load — check your connection and reload the page.', 'error');
+    return true;
+  }
+
+  function purgeCharts(ids) {
+    if (typeof Plotly === 'undefined') return;
+    ids.forEach(id => { const el = document.getElementById(id); if (el && el.data) Plotly.purge(el); });
+  }
+
+  // Days off roast only when the bean has a roast date; the saved choice is kept either way
+  function dialinUsesRoast(bean) {
+    return espressoDialinAxis === 'roast' && !!(bean && bean.roastDate);
+  }
+
+  function syncDialinSwitch(bean) {
+    const dated = !!(bean && bean.roastDate), roast = dialinUsesRoast(bean);
+    markSwitch([{ id: 'espresso-axis-shot', on: !roast }, { id: 'espresso-axis-roast', on: roast, disabled: !dated }]);
+    document.getElementById('espresso-axis-hint').classList.toggle('hidden', dated);
+  }
+
+  function setDialinAxis(axis) {
+    espressoDialinAxis = axis;
+    writePref('espresso.dialinAxis', axis);
+    syncDialinSwitch(espressoBean);
+    const cs = espressoBean ? chartShots(espressoShots, espressoBean) : [];
+    if (espressoChartsOpen && cs.length >= 3 && !plotlyMissing('espresso-charts-msg')) drawDialinChart(cs, chartTheme(), espressoBean);
   }
 
   // Card shown from 3 shots; charts drawn only while it's open, after the
   // body is visible, so Plotly never measures a zero-width box.
   function syncEspressoCharts() {
-    const cs = espressoBean ? chartShots(espressoShots) : [];
+    const cs = espressoBean ? chartShots(espressoShots, espressoBean) : [];
     const show = cs.length >= 3, open = show && espressoChartsOpen;
+    syncDialinSwitch(espressoBean);
     document.getElementById('espresso-charts-card').classList.toggle('hidden', !show);
     document.getElementById('espresso-charts-body').classList.toggle('hidden', !open);
     const toggle = document.getElementById('espresso-charts-toggle');
@@ -3778,14 +3921,15 @@
     else if (!show) purgeEspressoCharts();
   }
 
-  function purgeEspressoCharts() {
-    if (typeof Plotly === 'undefined') return;
-    ESPRESSO_CHART_IDS.forEach(id => { const el = document.getElementById(id); if (el && el.data) Plotly.purge(el); });
-  }
+  function purgeEspressoCharts() { purgeCharts(ESPRESSO_CHART_IDS); }
+
+  function purgeGlobalCharts() { purgeCharts(GLOBAL_CHART_IDS); }
+
+  function purgeEspressoAll() { purgeEspressoCharts(); purgeGlobalCharts(); }
 
   function resizeEspressoCharts() {
     if (typeof Plotly === 'undefined') return;
-    ESPRESSO_CHART_IDS.forEach(id => {
+    [...ESPRESSO_CHART_IDS, ...GLOBAL_CHART_IDS].forEach(id => {
       const el = document.getElementById(id);
       if (el && el.data && el.offsetParent !== null) Plotly.Plots.resize(el);
     });
@@ -3793,9 +3937,10 @@
 
   window.addEventListener('resize', resizeEspressoCharts);
 
-  // "#7 · G6 · 17.8→36.1g · 29s · 1:2.0" and the date, for both charts' tooltips
+  // "#7 · G6 · 17.8→36.1g · 29s · 1:2.0 · day 6" and the date, for every chart's tooltips
   function chartShotText(s) {
-    return `#${s.n} · ${recipeLine(s)}<br>${shotWhen(s)}`;
+    const day = s.daysOff == null ? '' : ` · day ${Math.round(s.daysOff) || 0}`; // || 0: no "-0"
+    return `#${s.n} · ${recipeLine(s)}${day}<br>${shotWhen(s)}`;
   }
 
   // The target as a faint fill plus a dashed edge (shape opacity covers both, so two shapes)
@@ -3834,18 +3979,14 @@
     return l;
   }
 
-  function drawEspressoCharts(cs) {
-    if (typeof Plotly === 'undefined') {
-      return crosswordMsg('espresso-charts-msg', 'Charts couldn\'t load — check your connection and reload the page.', 'error');
-    }
-    crosswordMsg('espresso-charts-msg', '', 'error');
-    const t = chartTheme(), T = ESPRESSO_TARGET, latest = cs[cs.length - 1];
-    const times = cs.map(s => s.timeSeconds), ratios = cs.map(s => s.ratio);
-    document.getElementById('espresso-chart-target-caption').textContent =
-      `Where shots land · target ${T.timeMin}–${T.timeMax}s, 1:${T.ratioMin.toFixed(1)}–${T.ratioMax.toFixed(1)}`;
-    document.getElementById('espresso-chart-dialin-caption').textContent = 'Dial-in · shot time, grind changes marked';
+  function targetText() {
+    const T = ESPRESSO_TARGET;
+    return `target ${T.timeMin}–${T.timeMax}s, 1:${T.ratioMin.toFixed(1)}–${T.ratioMax.toFixed(1)}`;
+  }
 
-    // Chart 1: time × ratio, the target box, every shot
+  // time × ratio, with the target box: the ranges always hold the box and every point
+  function targetLayout(t, shots) {
+    const T = ESPRESSO_TARGET, times = shots.map(s => s.timeSeconds), ratios = shots.map(s => s.ratio);
     const box = espressoLayout(t);
     box.xaxis.range = [Math.min(18, Math.min(...times) - 2), Math.max(36, Math.max(...times) + 2)];
     box.xaxis.title = { text: 'time (s)', font: { size: 11 } };
@@ -3853,28 +3994,282 @@
     box.yaxis.title = { text: 'ratio', font: { size: 11 } };
     box.yaxis.tickformat = '.1f';
     box.shapes = targetShapes(t, { xref: 'x', yref: 'y', x0: T.timeMin, x1: T.timeMax, y0: T.ratioMin, y1: T.ratioMax });
-    const rightHalf = latest.timeSeconds > (box.xaxis.range[0] + box.xaxis.range[1]) / 2; // label away from the edge
-    box.annotations = [{ x: latest.timeSeconds, y: latest.ratio, xref: 'x', yref: 'y', text: 'latest', showarrow: false,
-      xanchor: rightHalf ? 'right' : 'left', xshift: rightHalf ? -10 : 10, font: { size: 10, color: t.accent } }];
-    Plotly.react('espresso-chart-target', shotTraces(t, cs, 'timeSeconds', 'ratio', false), box, CHART_CONFIG);
+    return box;
+  }
 
-    // Chart 2: shot number × time, the time band, a dashed line at each grind change
-    const segs = grindSegments(cs);
+  function latestLabel(t, box, latest) {
+    const rightHalf = latest.timeSeconds > (box.xaxis.range[0] + box.xaxis.range[1]) / 2; // label away from the edge
+    return { x: latest.timeSeconds, y: latest.ratio, xref: 'x', yref: 'y', text: 'latest', showarrow: false,
+      xanchor: rightHalf ? 'right' : 'left', xshift: rightHalf ? -10 : 10, font: { size: 10, color: t.accent } };
+  }
+
+  // shot time on y, the 25–32 s band, ranges holding the band and every point
+  function timeAxis(l, times) {
+    l.yaxis.range = [Math.min(20, Math.min(...times) - 2), Math.max(36, Math.max(...times) + 2)];
+    l.yaxis.title = { text: 'time (s)', font: { size: 11 } };
+  }
+
+  function drawEspressoCharts(cs) {
+    if (plotlyMissing('espresso-charts-msg')) return;
+    crosswordMsg('espresso-charts-msg', '', 'error');
+    const t = chartTheme(), latest = cs[cs.length - 1];
+    document.getElementById('espresso-chart-target-caption').textContent = `Where shots land · ${targetText()}`;
+
+    // Chart 1: time × ratio, the target box, every shot
+    const box = targetLayout(t, cs);
+    box.annotations = [latestLabel(t, box, latest)];
+    Plotly.react('espresso-chart-target', shotTraces(t, cs, 'timeSeconds', 'ratio', false), box, CHART_CONFIG);
+    drawDialinChart(cs, t, espressoBean);
+  }
+
+  // Chart 2: shot time by shot number or by days off roast, the time band, a
+  // dashed line halfway between shots wherever the grind changed
+  function drawDialinChart(cs, t, bean) {
+    const T = ESPRESSO_TARGET, roast = dialinUsesRoast(bean), key = roast ? 'daysOff' : 'n';
+    const xs = cs.map(s => s[key]), segs = grindSegments(cs);
+    document.getElementById('espresso-chart-dialin-caption').textContent =
+      `Dial-in · shot time by ${roast ? 'days off roast' : 'shot'}, grind changes marked`;
     const dial = espressoLayout(t);
-    dial.xaxis.range = [0.5, cs.length + 0.5];
-    dial.xaxis.title = { text: 'shot', font: { size: 11 } };
+    if (roast) {
+      const lo = Math.min(0, xs[0] - 0.5), hi = Math.max(xs[xs.length - 1] + 0.5, lo + 7), span = hi - lo;
+      dial.xaxis.range = [lo, hi];
+      dial.xaxis.title = { text: 'days off roast', font: { size: 11 } };
+      dial.xaxis.tick0 = 0;
+      dial.xaxis.dtick = span <= 10 ? 1 : span <= 20 ? 2 : 7;
+    } else {
+      dial.xaxis.range = [0.5, cs.length + 0.5];
+      dial.xaxis.title = { text: 'shot', font: { size: 11 } };
+      if (cs.length <= 15) { dial.xaxis.tick0 = 1; dial.xaxis.dtick = 1; }
+    }
     dial.xaxis.tickformat = 'd';
-    if (cs.length <= 15) { dial.xaxis.tick0 = 1; dial.xaxis.dtick = 1; }
-    dial.yaxis.range = [Math.min(20, Math.min(...times) - 2), Math.max(36, Math.max(...times) + 2)];
-    dial.yaxis.title = { text: 'time (s)', font: { size: 11 } };
+    timeAxis(dial, cs.map(s => s.timeSeconds));
+    const cut = g => (xs[g.fromN - 2] + xs[g.fromN - 1]) / 2; // halfway from the previous shot
     dial.shapes = [
       ...targetShapes(t, { xref: 'paper', yref: 'y', x0: 0, x1: 1, y0: T.timeMin, y1: T.timeMax }),
-      ...segs.slice(1).map(g => ({ type: 'line', xref: 'x', yref: 'paper', x0: g.fromN - 0.5, x1: g.fromN - 0.5, y0: 0, y1: 1,
+      ...segs.slice(1).map(g => ({ type: 'line', xref: 'x', yref: 'paper', x0: cut(g), x1: cut(g), y0: 0, y1: 1,
         line: { color: t.text, width: 1, dash: 'dash' } }))
     ];
-    dial.annotations = segs.map(g => ({ x: g.fromN - 0.5, y: 1, xref: 'x', yref: 'paper', xanchor: 'left', yanchor: 'top',
+    dial.annotations = segs.map((g, i) => ({ x: i ? cut(g) : dial.xaxis.range[0], y: 1, xref: 'x', yref: 'paper', xanchor: 'left', yanchor: 'top',
       xshift: 3, showarrow: false, text: `G${g.grind}`, font: { size: 10, color: t.text } }));
-    Plotly.react('espresso-chart-dialin', shotTraces(t, cs, 'n', 'timeSeconds', true), dial, CHART_CONFIG);
+    Plotly.react('espresso-chart-dialin', shotTraces(t, cs, key, 'timeSeconds', true), dial, CHART_CONFIG);
+  }
+
+  // ── Charts across every bean ──
+  // The bags that get a colour: the 4 most recently used among those passed
+  // (the caller passes the beans that have plotted shots, so a bag with no
+  // shots never takes a colour). The rest are 'older'.
+  function beanColours(beans, lastShot, palette = chartTheme().setters) {
+    const ranked = beans.slice().sort((a, b) => beanLastUsed(b, lastShot) - beanLastUsed(a, lastShot)
+      || a.roaster.localeCompare(b.roaster) || a.name.localeCompare(b.name));
+    return new Map(ranked.map((b, i) => [b.id, i < palette.length ? palette[i] : 'older']));
+  }
+
+  // Every plotted shot, archived beans included, oldest first: `n` within its
+  // bean, `daysOff`, and opacity and latest across all of them. Shots for a
+  // bean that no longer exists, and pending ones, are left out.
+  function globalShots(beans, shots) {
+    const byId = new Map(beans.map(b => [b.id, b])), groups = new Map();
+    for (const s of shots) {
+      if (!byId.has(s.beanId)) continue;
+      if (!groups.has(s.beanId)) groups.set(s.beanId, []);
+      groups.get(s.beanId).push(s);
+    }
+    const all = [...groups].flatMap(([id, list]) => chartShots(list, byId.get(id)).map(s => ({ ...s, bean: byId.get(id) })))
+      .sort((a, b) => shotMillis(a) - shotMillis(b));
+    const last = all.length - 1;
+    return all.map((s, i) => ({ ...s, isLatest: i === last,
+      opacity: last ? Math.round((0.2 + 0.65 * i / last) * 100) / 100 : 0.85 }));
+  }
+
+  // Shots on a grid of bins: counts, bin centres, and z with empty bins as null
+  // (drawn transparent). Bins start on a multiple of their size, so the edges are round.
+  function binStart(values, size) {
+    return Math.round(Math.floor(Math.min(...values) / size + 1e-9) * size * 1e6) / 1e6;
+  }
+
+  function binGrid(points, xBin, yBin) {
+    const idx = (v, b) => Math.floor((v - b.start) / b.size + 1e-9);
+    const nx = Math.max(...points.map(p => idx(p.x, xBin))) + 1, ny = Math.max(...points.map(p => idx(p.y, yBin))) + 1;
+    const counts = Array.from({ length: ny }, () => new Array(nx).fill(0));
+    for (const p of points) counts[idx(p.y, yBin)][idx(p.x, xBin)]++;
+    const edge = (b, i) => Math.round((b.start + i * b.size) * 1e6) / 1e6;
+    return {
+      counts,
+      x: Array.from({ length: nx }, (_, i) => edge(xBin, i) + xBin.size / 2),
+      y: Array.from({ length: ny }, (_, i) => edge(yBin, i) + yBin.size / 2),
+      xEdges: Array.from({ length: nx + 1 }, (_, i) => edge(xBin, i)),
+      yEdges: Array.from({ length: ny + 1 }, (_, i) => edge(yBin, i)),
+      z: counts.map(row => row.map(c => c || null))
+    };
+  }
+
+  function shortBeanLabel(bean) {
+    const l = beanLabel(bean);
+    return l.length > 22 ? `${l.slice(0, 21).trimEnd()}…` : l;
+  }
+
+  function globalShotText(s) {
+    return `${escapeHtml(beanLabel(s.bean))}<br>${chartShotText(s)}`;
+  }
+
+  function toggleGlobalCharts() {
+    espressoGlobalOpen = !espressoGlobalOpen;
+    writePref('espresso.globalChartsOpen', espressoGlobalOpen ? '1' : '0');
+    syncGlobalCharts();
+  }
+
+  // Card shown from 3 plotted shots (and not at all if the shots read failed);
+  // charts drawn only while it's open, purged when it closes.
+  function syncGlobalCharts() {
+    const gs = espressoAllShots ? globalShots(espressoBeans, espressoAllShots) : [];
+    const show = gs.length >= 3, open = show && espressoGlobalOpen;
+    document.getElementById('espresso-global-card').classList.toggle('hidden', !show);
+    document.getElementById('espresso-global-body').classList.toggle('hidden', !open);
+    const toggle = document.getElementById('espresso-global-toggle');
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.textContent = espressoGlobalOpen ? 'Charts ▴' : 'Charts ▾';
+    if (open) drawGlobalCharts(gs);
+    else purgeGlobalCharts();
+  }
+
+  function globalColours(gs, t) {
+    const plotted = [...new Map(gs.map(s => [s.bean.id, s.bean])).values()];
+    const map = beanColours(plotted, espressoLastShot, t.setters);
+    return { map, colourOf: id => (map.get(id) === 'older' ? t.setterOther : map.get(id)),
+      ranked: plotted.filter(b => map.get(b.id) !== 'older').sort((a, b) => t.setters.indexOf(map.get(a.id)) - t.setters.indexOf(map.get(b.id))) };
+  }
+
+  function drawGlobalCharts(gs) {
+    if (plotlyMissing('espresso-global-msg')) return;
+    crosswordMsg('espresso-global-msg', '', 'error');
+    const t = chartTheme(), colours = globalColours(gs, t);
+    drawGlobalTarget(gs, t, colours);
+    drawGlobalAgeing(gs, t, colours);
+    drawGlobalHeat(gs, t);
+  }
+
+  // One legend entry per coloured bag, then "Older bags" for the rest
+  function legendLayout(l) {
+    l.showlegend = true;
+    l.legend = { ...legendAbovePlot(), entrywidth: 150 };
+    l.height = 320;
+    return l;
+  }
+
+  function drawGlobalTarget(gs, t, colours) {
+    document.getElementById('espresso-global-target-caption').textContent = `Where shots land · all beans · ${targetText()}`;
+    const older = gs.filter(s => colours.map.get(s.bean.id) === 'older');
+    const groups = [...colours.ranked.map(b => ({ name: escapeHtml(shortBeanLabel(b)), colour: colours.colourOf(b.id), shots: gs.filter(s => s.bean.id === b.id) })),
+      ...(older.length ? [{ name: 'Older bags', colour: t.setterOther, shots: older }] : [])];
+    const latest = gs[gs.length - 1];
+    const traces = groups.map(g => ({ type: 'scatter', mode: 'markers', name: g.name,
+      x: g.shots.map(s => s.timeSeconds), y: g.shots.map(s => s.ratio), text: g.shots.map(globalShotText),
+      marker: { color: g.colour, size: 8, opacity: g.shots.map(s => s.opacity) }, hovertemplate: '%{text}<extra></extra>' }));
+    traces.push({ type: 'scatter', mode: 'markers', name: 'latest', showlegend: false,
+      x: [latest.timeSeconds], y: [latest.ratio], text: [globalShotText(latest)],
+      marker: { color: colours.colourOf(latest.bean.id), size: 13, line: { color: t.card, width: 2 } }, hovertemplate: '%{text}<extra></extra>' });
+    const box = legendLayout(targetLayout(t, gs));
+    box.annotations = [latestLabel(t, box, latest)];
+    Plotly.react('espresso-global-target', traces, box, CHART_CONFIG);
+  }
+
+  // One line per bag with a roast date; older bags share one grey legend entry
+  function ageTraces(dated, colours, yKey, shape) {
+    const seen = new Set();
+    return [...new Map(dated.map(s => [s.bean.id, s.bean])).values()].map(b => {
+      const shots = dated.filter(s => s.bean.id === b.id), older = colours.map.get(b.id) === 'older';
+      const first = older && !seen.has('older'); if (older) seen.add('older');
+      return { type: 'scatter', mode: 'lines+markers', name: older ? 'Older bags' : escapeHtml(shortBeanLabel(b)),
+        legendgroup: older ? 'older' : b.id, showlegend: !older || first,
+        x: shots.map(s => s.daysOff), y: shots.map(s => s[yKey]), text: shots.map(globalShotText),
+        line: { color: colours.colourOf(b.id), width: 1.5, shape }, marker: { color: colours.colourOf(b.id), size: 6 },
+        hovertemplate: '%{text}<extra></extra>' };
+    });
+  }
+
+  function drawGlobalAgeing(gs, t, colours) {
+    const dated = gs.filter(s => s.daysOff !== null);
+    const undated = new Set(gs.filter(s => s.daysOff === null).map(s => s.bean.id)).size;
+    const note = document.getElementById('espresso-global-age-note');
+    note.textContent = undated === 1 ? '1 bag without a roast date isn\'t shown.' : `${undated} bags without a roast date aren't shown.`;
+    note.classList.toggle('hidden', !undated);
+    const box = document.getElementById('espresso-global-age-charts');
+    box.classList.toggle('hidden', !dated.length);
+    if (!dated.length) return purgeCharts(AGE_CHART_IDS);
+
+    const days = dated.map(s => s.daysOff), grinds = dated.map(s => s.grind);
+    const range = [Math.min(0, Math.min(...days)) - 0.5, Math.max(14, Math.max(...days)) + 0.5]; // shared by both
+    const axis = l => { l.xaxis.range = range; l.xaxis.title = { text: 'days off roast', font: { size: 11 } }; l.xaxis.tickformat = 'd'; return legendLayout(l); };
+
+    const grind = axis(espressoLayout(t));
+    grind.yaxis.range = [Math.max(0, Math.min(...grinds) - 1), Math.min(17, Math.max(...grinds) + 1)];
+    grind.yaxis.dtick = 1;
+    grind.yaxis.title = { text: 'grind', font: { size: 11 } };
+    Plotly.react('espresso-global-grind', ageTraces(dated, colours, 'grind', 'hv'), grind, CHART_CONFIG);
+
+    const time = axis(espressoLayout(t));
+    timeAxis(time, dated.map(s => s.timeSeconds));
+    const T = ESPRESSO_TARGET;
+    time.shapes = targetShapes(t, { xref: 'paper', yref: 'y', x0: 0, x1: 1, y0: T.timeMin, y1: T.timeMax });
+    Plotly.react('espresso-global-agetime', ageTraces(dated, colours, 'timeSeconds', 'linear'), time, CHART_CONFIG);
+  }
+
+  // Caff or decaf: the saved side if it has shots, else the side with more
+  function heatSide(gs) {
+    const n = { caff: gs.filter(s => !s.bean.decaf).length, decaf: gs.filter(s => s.bean.decaf).length };
+    const side = espressoHeatSplit && n[espressoHeatSplit] ? espressoHeatSplit : n.decaf > n.caff ? 'decaf' : 'caff';
+    return { side, n };
+  }
+
+  function setHeatSplit(side) { espressoHeatSplit = side; writePref('espresso.heatSplit', side); redrawHeat(); }
+
+  function setHeatBins(bins) { espressoHeatBins = bins; writePref('espresso.heatBins', bins); redrawHeat(); }
+
+  function redrawHeat() {
+    const gs = espressoAllShots ? globalShots(espressoBeans, espressoAllShots) : [];
+    if (espressoGlobalOpen && gs.length >= 3 && !plotlyMissing('espresso-global-msg')) drawGlobalHeat(gs, chartTheme());
+  }
+
+  function heatTrace(t, grid, label) {
+    const max = Math.max(...grid.counts.flat());
+    return [{ type: 'heatmap', x: grid.x, y: grid.y, z: grid.z, zmin: 1, zmax: Math.max(2, max), showscale: false,
+      colorscale: [[0, t.seqLight], [1, t.seqDark]], xgap: 1, ygap: 1, hoverongaps: false,
+      text: grid.counts.map((row, j) => row.map((c, i) => `${label(i, j)}: ${c} shot${c === 1 ? '' : 's'}`)),
+      hovertemplate: '%{text}<extra></extra>' }];
+  }
+
+  function drawGlobalHeat(gs, t) {
+    const { side, n } = heatSide(gs), bins = HEAT_BINS[espressoHeatBins] || HEAT_BINS.coarse;
+    markSwitch([{ id: 'espresso-heat-caff', on: side === 'caff', disabled: !n.caff }, { id: 'espresso-heat-decaf', on: side === 'decaf', disabled: !n.decaf },
+      { id: 'espresso-heat-coarse', on: espressoHeatBins !== 'fine' }, { id: 'espresso-heat-fine', on: espressoHeatBins === 'fine' }]);
+    const shots = gs.filter(s => !!s.bean.decaf === (side === 'decaf'));
+    const count = `${shots.length} shot${shots.length === 1 ? '' : 's'}`;
+    document.getElementById('espresso-global-heat-grind-caption').textContent = `Grind × shot time · ${count}`;
+    document.getElementById('espresso-global-heat-ratio-caption').textContent = `Shot time × ratio · ${count}`;
+    const times = shots.map(s => s.timeSeconds), ratios = shots.map(s => s.ratio);
+    const timeBin = { start: binStart(times, bins.time), size: bins.time };
+    const secs = (g, j) => `${g.yEdges[j]}–${g.yEdges[j + 1]}s`;
+
+    const gGrid = binGrid(shots.map(s => ({ x: s.grind, y: s.timeSeconds })), { start: Math.min(...shots.map(s => s.grind)) - 0.5, size: 1 }, timeBin);
+    const gl = espressoLayout(t);
+    gl.xaxis.range = [gGrid.xEdges[0], gGrid.xEdges[gGrid.xEdges.length - 1]];
+    gl.xaxis.dtick = 1;
+    gl.xaxis.title = { text: 'grind', font: { size: 11 } };
+    gl.yaxis.range = [gGrid.yEdges[0], gGrid.yEdges[gGrid.yEdges.length - 1]];
+    gl.yaxis.title = { text: 'time (s)', font: { size: 11 } };
+    Plotly.react('espresso-global-heat-grind', heatTrace(t, gGrid, (i, j) => `G${gGrid.x[i]} · ${secs(gGrid, j)}`), gl, CHART_CONFIG);
+
+    const rGrid = binGrid(shots.map(s => ({ x: s.timeSeconds, y: s.ratio })), timeBin, { start: binStart(ratios, bins.ratio), size: bins.ratio });
+    const rl = espressoLayout(t), T = ESPRESSO_TARGET;
+    rl.xaxis.range = [rGrid.xEdges[0], rGrid.xEdges[rGrid.xEdges.length - 1]];
+    rl.xaxis.title = { text: 'time (s)', font: { size: 11 } };
+    rl.yaxis.range = [rGrid.yEdges[0], rGrid.yEdges[rGrid.yEdges.length - 1]];
+    rl.yaxis.title = { text: 'ratio', font: { size: 11 } };
+    rl.yaxis.tickformat = '.1f';
+    rl.shapes = [{ type: 'rect', xref: 'x', yref: 'y', x0: T.timeMin, x1: T.timeMax, y0: T.ratioMin, y1: T.ratioMax,
+      fillcolor: 'rgba(0,0,0,0)', line: { color: t.target, width: 1.5, dash: 'dash' } }];
+    const rLabel = (i, j) => `${rGrid.xEdges[i]}–${rGrid.xEdges[i + 1]}s · 1:${rGrid.yEdges[j].toFixed(1)}–${rGrid.yEdges[j + 1].toFixed(1)}`;
+    Plotly.react('espresso-global-heat-ratio', heatTrace(t, rGrid, rLabel), rl, CHART_CONFIG);
   }
 
   function isCurrentShot(shot) {

@@ -82,7 +82,7 @@ With every bag included, a colour per bag would run out fast. Proposal:
 
 Smoothed density contours, not binned counts (changed after the first build; see Review decisions).
 
-- A **`Caff` | `Decaf`** switch (`.crossword-tabs`), defaulting to whichever has more shots. Remember it in `espresso.heatSplit`. When one side has no shots, that option is disabled.
+- A **`Caff` | `Decaf` | `All`** switch (`.crossword-tabs`), defaulting to All, as on the Ageing charts. Remember it in `espresso.heatSplit`. A side with no shots is disabled, and a saved empty side falls back to All.
 - A **`Smooth` | `Detailed`** switch sets how far each shot spreads (one standard deviation): Smooth is grind 0.8, time 2.5 s, ratio 0.12; Detailed is grind 0.5, time 1.5 s, ratio 0.07. Smooth is the default, remembered in `espresso.heatSmoothing`. Either switch redraws only the two heat maps.
 - Density: each shot adds a Gaussian bump of height 1 on a 50 × 50 grid padded by 2.5 spreads. The value reads as roughly "shots nearby": about 1 by a lone shot, about 2 where two overlap.
 - Two filled `contour` charts:
@@ -115,6 +115,7 @@ Smoothed density contours, not binned counts (changed after the first build; see
 6. **Heat maps, after the first build:** smoothed density contours in viridis instead of binned cells. Smooth / Detailed replaces Coarse / Fine. Faint dots show each shot.
 7. **Long-lived bags:** the Ageing charts are capped at 6 weeks, with an edge note and a 6 weeks / All switch. The bean page's Dial-in chart stays uncapped.
 8. **Ageing split:** Caff / Decaf / All on the Ageing charts, since the long-lived bags are usually decaf.
+9. **All everywhere:** the heat maps' Caff / Decaf switch gains All, which is now the default there too.
 
 ## Acceptance checks
 
@@ -133,7 +134,7 @@ Smoothed density contours, not binned counts (changed after the first build; see
 - [ ] Charts stacked in Target / Ageing / Heat maps sections; all drawn on open, none while closed; closing the card, opening a bean or leaving the view purges them.
 - [ ] Target: every plotted shot; target box; 4 most recent bags coloured in list order, the rest "Older bags"; overall newest shot ringed and labelled.
 - [ ] Ageing: both charts share an x range; one line per bag with a roast date; the "N bags without a roast date" note is correct and pluralised; only the note when no bag has a date.
-- [ ] Heat maps: Caff/Decaf switch defaults to the larger side and disables an empty side; Coarse (3 s, 0.2) by default and Fine (2 s, 0.1) on the switch, remembered; grind one bin per setting; target outline on time × ratio; empty bins uncoloured; no colour bar; switches redraw only the heat maps.
+- [ ] Heat maps: Caff/Decaf/All switch defaults to All and disables an empty side; smoothed density contours in viridis, clear below the floor, no colour bar; Smooth by default and Detailed on the switch, remembered; each shot as a faint dot carrying the tooltip; target outline on time × ratio; switches redraw only the heat maps.
 - [ ] User text (bean labels) escaped in legends, tooltips and notes.
 
 ### Everywhere

@@ -1821,6 +1821,7 @@
             <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Caff or decaf">
               <button type="button" class="crossword-tab" role="tab" id="espresso-heat-caff" onclick="setHeatSplit('caff')">Caff</button>
               <button type="button" class="crossword-tab" role="tab" id="espresso-heat-decaf" onclick="setHeatSplit('decaf')">Decaf</button>
+              <button type="button" class="crossword-tab" role="tab" id="espresso-heat-all" onclick="setHeatSplit('all')">All</button>
             </div>
             <div class="crossword-tabs espresso-switch" role="tablist" aria-label="Smoothing">
               <button type="button" class="crossword-tab" role="tab" id="espresso-heat-smooth" onclick="setHeatSmoothing('smooth')">Smooth</button>
@@ -3353,7 +3354,7 @@
   // Per-device chart choices; each falls back to its default if storage fails
   let espressoDialinAxis = readPref('espresso.dialinAxis', ['shot', 'roast'], 'shot');
   let espressoGlobalOpen = readPref('espresso.globalChartsOpen', ['1', '0'], '0') === '1';
-  let espressoHeatSplit = readPref('espresso.heatSplit', ['caff', 'decaf'], null); // null: the side with more shots
+  let espressoHeatSplit = readPref('espresso.heatSplit', ['caff', 'decaf', 'all'], 'all');
   let espressoAgeRange = readPref('espresso.ageRange', ['window', 'all'], 'window');
   let espressoAgeSplit = readPref('espresso.ageSplit', ['caff', 'decaf', 'all'], 'all');
   let espressoHeatSmoothing = readPref('espresso.heatSmoothing', ['smooth', 'detailed'], 'smooth');
@@ -4201,11 +4202,17 @@
     });
   }
 
-  // Caff, decaf or all for the Ageing charts: the saved choice if that side has shots, else all
-  function ageSide(gs) {
+  // Caff, decaf or all, for the Ageing charts and the heat maps alike: the saved
+  // choice if that side has shots, else all. `n` counts each side for the switch.
+  function splitShots(gs, saved) {
     const n = { caff: gs.filter(s => !s.bean.decaf).length, decaf: gs.filter(s => s.bean.decaf).length };
-    const side = espressoAgeSplit !== 'all' && n[espressoAgeSplit] ? espressoAgeSplit : 'all';
+    const side = saved !== 'all' && n[saved] ? saved : 'all';
     return { side, n, shots: side === 'all' ? gs : gs.filter(s => !!s.bean.decaf === (side === 'decaf')) };
+  }
+
+  function markSplit(prefix, { side, n }) {
+    markSwitch([{ id: `${prefix}-caff`, on: side === 'caff', disabled: !n.caff },
+      { id: `${prefix}-decaf`, on: side === 'decaf', disabled: !n.decaf }, { id: `${prefix}-all`, on: side === 'all' }]);
   }
 
   function setAgeSplit(side) {
@@ -4217,9 +4224,8 @@
   // Bags keep the colours they have on the Target chart, whichever side is shown;
   // the window, its note and the undated count follow the side.
   function drawGlobalAgeing(allShots, t, colours) {
-    const { side, n, shots: gs } = ageSide(allShots);
-    markSwitch([{ id: 'espresso-agesplit-caff', on: side === 'caff', disabled: !n.caff },
-      { id: 'espresso-agesplit-decaf', on: side === 'decaf', disabled: !n.decaf }, { id: 'espresso-agesplit-all', on: side === 'all' }]);
+    const split = splitShots(allShots, espressoAgeSplit), gs = split.shots;
+    markSplit('espresso-agesplit', split);
     const dated = gs.filter(s => s.daysOff !== null);
     const undated = new Set(gs.filter(s => s.daysOff === null).map(s => s.bean.id)).size;
     const note = document.getElementById('espresso-global-age-note');
@@ -4268,13 +4274,6 @@
     if (espressoGlobalOpen && gs.length >= 3 && !plotlyMissing('espresso-global-msg')) { const t = chartTheme(); drawGlobalAgeing(gs, t, globalColours(gs, t)); }
   }
 
-  // Caff or decaf: the saved side if it has shots, else the side with more
-  function heatSide(gs) {
-    const n = { caff: gs.filter(s => !s.bean.decaf).length, decaf: gs.filter(s => s.bean.decaf).length };
-    const side = espressoHeatSplit && n[espressoHeatSplit] ? espressoHeatSplit : n.decaf > n.caff ? 'decaf' : 'caff';
-    return { side, n };
-  }
-
   function setHeatSplit(side) { espressoHeatSplit = side; writePref('espresso.heatSplit', side); redrawHeat(); }
 
   function setHeatSmoothing(level) { espressoHeatSmoothing = level; writePref('espresso.heatSmoothing', level); redrawHeat(); }
@@ -4297,11 +4296,10 @@
   }
 
   function drawGlobalHeat(gs, t) {
-    const { side, n } = heatSide(gs), detailed = espressoHeatSmoothing === 'detailed';
+    const split = splitShots(gs, espressoHeatSplit), shots = split.shots, detailed = espressoHeatSmoothing === 'detailed';
     const h = HEAT_SMOOTHING[detailed ? 'detailed' : 'smooth'];
-    markSwitch([{ id: 'espresso-heat-caff', on: side === 'caff', disabled: !n.caff }, { id: 'espresso-heat-decaf', on: side === 'decaf', disabled: !n.decaf },
-      { id: 'espresso-heat-smooth', on: !detailed }, { id: 'espresso-heat-detailed', on: detailed }]);
-    const shots = gs.filter(s => !!s.bean.decaf === (side === 'decaf'));
+    markSplit('espresso-heat', split);
+    markSwitch([{ id: 'espresso-heat-smooth', on: !detailed }, { id: 'espresso-heat-detailed', on: detailed }]);
     const count = `${shots.length} shot${shots.length === 1 ? '' : 's'}`;
     document.getElementById('espresso-global-heat-grind-caption').textContent = `Grind × shot time · ${count}`;
     document.getElementById('espresso-global-heat-ratio-caption').textContent = `Shot time × ratio · ${count}`;

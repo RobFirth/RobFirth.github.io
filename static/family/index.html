@@ -48,6 +48,7 @@
     --chart-setter-3: #27ae60;
     --chart-setter-4: #3498db;
     --chart-setter-other: #aeb6bf;
+    --chart-target: #56b06e; /* espresso target band: a muted green, drawn at ~12% fill with a dashed edge */
     --decaf: #b9dcff; /* pale blue, well clear of --accent so the tag reads as a label */
     /* Tracker levels: one hue, light to dark, interpolated for however many
        levels the config has. Lightness alone separates them, so it's
@@ -1029,6 +1030,31 @@
 
   .espresso-detail-current { margin-top: 8px; }
 
+  /* Dial-in charts: collapsed by default; the heading is the toggle */
+  .crossword-card h2.espresso-charts-heading { margin-bottom: 0; }
+
+  .espresso-charts-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+  }
+
+  .espresso-charts-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .espresso-chart-caption {
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    margin: 14px 0 4px;
+  }
+
   .espresso-origin-line,
   .espresso-roaster-notes {
     margin-top: 6px;
@@ -1793,6 +1819,21 @@
           <button type="button" class="espresso-secondary hidden" id="espresso-shot-cancel" onclick="cancelShotEdit()">Cancel</button>
         </form>
         <p id="espresso-shot-msg" class="form-msg"></p>
+      </div>
+
+      <!-- Dial-in charts: shown from 3 shots, collapsed by default, drawn only while open -->
+      <div id="espresso-charts-card" class="crossword-card hidden">
+        <h2 class="espresso-charts-heading">
+          <button type="button" id="espresso-charts-toggle" class="espresso-charts-toggle"
+            aria-expanded="false" aria-controls="espresso-charts-body" onclick="toggleEspressoCharts()">Charts ▾</button>
+        </h2>
+        <div id="espresso-charts-body" class="hidden">
+          <p id="espresso-chart-target-caption" class="espresso-chart-caption"></p>
+          <div id="espresso-chart-target" class="chart-box"></div>
+          <p id="espresso-chart-dialin-caption" class="espresso-chart-caption"></p>
+          <div id="espresso-chart-dialin" class="chart-box"></div>
+          <p id="espresso-charts-msg" class="form-msg"></p>
+        </div>
       </div>
 
       <div class="crossword-card">
@@ -2693,7 +2734,9 @@
       line2: v('--chart-line-2'),
       setters: [1, 2, 3, 4].map(n => v(`--chart-setter-${n}`)),
       setterOther: v('--chart-setter-other'),
-      setterNone: v('--text-dim')
+      setterNone: v('--text-dim'),
+      accent: v('--accent'),
+      target: v('--chart-target')
     };
   }
 
@@ -3204,6 +3247,10 @@
   // Clock fields, escaping and messages reuse the crossword helpers above.
   const BEANS = 'espresso_beans';
   const SHOTS = 'espresso_shots';
+  // Where a dialled-in shot lands. Plain constants, not settings.
+  const ESPRESSO_TARGET = { timeMin: 25, timeMax: 32, ratioMin: 1.8, ratioMax: 2.2 };
+  const CHARTS_OPEN_KEY = 'espresso.chartsOpen';
+  const ESPRESSO_CHART_IDS = ['espresso-chart-target', 'espresso-chart-dialin'];
 
   let espressoBeans = [];      // every bean, as fetched
   let espressoBeanRows = [];   // what the list shows; a row's data-index points here
@@ -3213,6 +3260,7 @@
   let editingBean = null;      // bean in the form, null when adding
   let editingShot = null;      // own shot in the shot form, null when logging a new one
   let confirmingShotId = null; // shot whose row is asking "Delete this shot?"
+  let espressoChartsOpen = readChartsOpen(); // per device; collapsed unless remembered open
 
   wireClockInput(document.getElementById('espresso-shot-time'));
 
@@ -3606,6 +3654,7 @@
       .forEach(id => crosswordMsg(id, '', 'error'));
     document.getElementById('espresso-shot-list').innerHTML = '';
     document.getElementById('espresso-shots-empty').classList.add('hidden');
+    syncEspressoCharts(); // no shots yet: hidden, and the last bean's charts purged
     renderBeanHeader();
     prefillShotForm(bean.current); // overwritten by the newest shot once loaded
     setEspressoPane(true);
@@ -3618,6 +3667,8 @@
     confirmingShotId = null;
     syncShotForm();
     closeBeanForm();
+    purgeEspressoCharts();
+    document.getElementById('espresso-charts-card').classList.add('hidden');
     setEspressoPane(false);
     loadBeans();
   }
@@ -3657,6 +3708,7 @@
       renderShotList();
       if (prefill && !editingShot) prefillShotForm(espressoShots[0] || espressoBean.current);
       syncShotForm();
+      syncEspressoCharts();
     } catch (err) {
       console.error('Error loading shots:', err);
       crosswordMsg('espresso-shots-msg', 'Couldn\'t load the shots. Please try again.', 'error');
@@ -3672,6 +3724,157 @@
     const d = shot.pulledAt.toDate();
     const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     return `${friendlyDate(localDateStr(d))}, ${time}`;
+  }
+
+  // ── Dial-in charts ──
+  // Oldest first, numbered from 1, for both charts. A shot whose pulledAt is
+  // still pending (no server time yet) is left out rather than guessed at;
+  // the next renderBeanDetail() picks it up. Opacity fades older shots,
+  // 0.2 → 0.85; the newest is drawn in the accent colour instead.
+  function chartShots(shots) {
+    const list = shots.filter(s => s.pulledAt).sort((a, b) => shotMillis(a) - shotMillis(b));
+    const last = list.length - 1;
+    return list.map((s, i) => ({
+      ...s,
+      n: i + 1,
+      ratio: s.yield / s.dose, // each shot's own dose
+      isLatest: i === last,
+      opacity: last ? Math.round((0.2 + 0.65 * i / last) * 100) / 100 : 0.85
+    }));
+  }
+
+  // One segment per run of the same grind: [{ grind, fromN, toN }]
+  function grindSegments(cs) {
+    const segs = [];
+    for (const s of cs) {
+      const prev = segs[segs.length - 1];
+      if (prev && prev.grind === s.grind) prev.toN = s.n;
+      else segs.push({ grind: s.grind, fromN: s.n, toN: s.n });
+    }
+    return segs;
+  }
+
+  function readChartsOpen() {
+    try { return localStorage.getItem(CHARTS_OPEN_KEY) === '1'; } catch (err) { return false; }
+  }
+
+  function toggleEspressoCharts() {
+    espressoChartsOpen = !espressoChartsOpen;
+    try { localStorage.setItem(CHARTS_OPEN_KEY, espressoChartsOpen ? '1' : '0'); } catch (err) { /* stays per page load */ }
+    syncEspressoCharts();
+  }
+
+  // Card shown from 3 shots; charts drawn only while it's open, after the
+  // body is visible, so Plotly never measures a zero-width box.
+  function syncEspressoCharts() {
+    const cs = espressoBean ? chartShots(espressoShots) : [];
+    const show = cs.length >= 3, open = show && espressoChartsOpen;
+    document.getElementById('espresso-charts-card').classList.toggle('hidden', !show);
+    document.getElementById('espresso-charts-body').classList.toggle('hidden', !open);
+    const toggle = document.getElementById('espresso-charts-toggle');
+    toggle.setAttribute('aria-expanded', String(espressoChartsOpen && show));
+    toggle.textContent = espressoChartsOpen ? 'Charts ▴' : 'Charts ▾';
+    if (open) drawEspressoCharts(cs);
+    else if (!show) purgeEspressoCharts();
+  }
+
+  function purgeEspressoCharts() {
+    if (typeof Plotly === 'undefined') return;
+    ESPRESSO_CHART_IDS.forEach(id => { const el = document.getElementById(id); if (el && el.data) Plotly.purge(el); });
+  }
+
+  function resizeEspressoCharts() {
+    if (typeof Plotly === 'undefined') return;
+    ESPRESSO_CHART_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.data && el.offsetParent !== null) Plotly.Plots.resize(el);
+    });
+  }
+
+  window.addEventListener('resize', resizeEspressoCharts);
+
+  // "#7 · G6 · 17.8→36.1g · 29s · 1:2.0" and the date, for both charts' tooltips
+  function chartShotText(s) {
+    return `#${s.n} · ${recipeLine(s)}<br>${shotWhen(s)}`;
+  }
+
+  // The target as a faint fill plus a dashed edge (shape opacity covers both, so two shapes)
+  function targetShapes(t, box) {
+    return [
+      { type: 'rect', layer: 'below', ...box, fillcolor: t.target, opacity: 0.12, line: { width: 0 } },
+      { type: 'rect', layer: 'below', ...box, fillcolor: 'rgba(0,0,0,0)', opacity: 0.7, line: { color: t.target, width: 1, dash: 'dash' } }
+    ];
+  }
+
+  // Older shots grey and fading; the newest on top in the accent, larger, ringed in the card colour
+  function shotTraces(t, cs, xKey, yKey, line) {
+    const latest = cs[cs.length - 1];
+    return [
+      { x: cs.map(s => s[xKey]), y: cs.map(s => s[yKey]), text: cs.map(chartShotText),
+        mode: line ? 'lines+markers' : 'markers', type: 'scatter',
+        line: { color: t.text, width: 1.5 },
+        marker: { color: t.text, size: 9, opacity: cs.map(s => s.opacity) },
+        hovertemplate: '%{text}<extra></extra>' },
+      { x: [latest[xKey]], y: [latest[yKey]], text: [chartShotText(latest)], mode: 'markers', type: 'scatter',
+        marker: { color: t.accent, size: 13, line: { color: t.card, width: 2 } },
+        hovertemplate: '%{text}<extra></extra>' }
+    ];
+  }
+
+  // No zoom or drag on either axis, so a finger scrolling the page is never captured
+  function espressoLayout(t) {
+    const l = baseLayout(t);
+    l.height = 260;
+    l.showlegend = false;
+    l.dragmode = false;
+    l.hovermode = 'closest';
+    l.margin = { ...l.margin, t: 12 };
+    l.xaxis.fixedrange = true;
+    l.yaxis.fixedrange = true;
+    return l;
+  }
+
+  function drawEspressoCharts(cs) {
+    if (typeof Plotly === 'undefined') {
+      return crosswordMsg('espresso-charts-msg', 'Charts couldn\'t load — check your connection and reload the page.', 'error');
+    }
+    crosswordMsg('espresso-charts-msg', '', 'error');
+    const t = chartTheme(), T = ESPRESSO_TARGET, latest = cs[cs.length - 1];
+    const times = cs.map(s => s.timeSeconds), ratios = cs.map(s => s.ratio);
+    document.getElementById('espresso-chart-target-caption').textContent =
+      `Where shots land · target ${T.timeMin}–${T.timeMax}s, 1:${T.ratioMin.toFixed(1)}–${T.ratioMax.toFixed(1)}`;
+    document.getElementById('espresso-chart-dialin-caption').textContent = 'Dial-in · shot time, grind changes marked';
+
+    // Chart 1: time × ratio, the target box, every shot
+    const box = espressoLayout(t);
+    box.xaxis.range = [Math.min(18, Math.min(...times) - 2), Math.max(36, Math.max(...times) + 2)];
+    box.xaxis.title = { text: 'time (s)', font: { size: 11 } };
+    box.yaxis.range = [Math.min(1.6, Math.min(...ratios) - 0.1), Math.max(2.4, Math.max(...ratios) + 0.1)];
+    box.yaxis.title = { text: 'ratio', font: { size: 11 } };
+    box.yaxis.tickformat = '.1f';
+    box.shapes = targetShapes(t, { xref: 'x', yref: 'y', x0: T.timeMin, x1: T.timeMax, y0: T.ratioMin, y1: T.ratioMax });
+    const rightHalf = latest.timeSeconds > (box.xaxis.range[0] + box.xaxis.range[1]) / 2; // label away from the edge
+    box.annotations = [{ x: latest.timeSeconds, y: latest.ratio, xref: 'x', yref: 'y', text: 'latest', showarrow: false,
+      xanchor: rightHalf ? 'right' : 'left', xshift: rightHalf ? -10 : 10, font: { size: 10, color: t.accent } }];
+    Plotly.react('espresso-chart-target', shotTraces(t, cs, 'timeSeconds', 'ratio', false), box, CHART_CONFIG);
+
+    // Chart 2: shot number × time, the time band, a dashed line at each grind change
+    const segs = grindSegments(cs);
+    const dial = espressoLayout(t);
+    dial.xaxis.range = [0.5, cs.length + 0.5];
+    dial.xaxis.title = { text: 'shot', font: { size: 11 } };
+    dial.xaxis.tickformat = 'd';
+    if (cs.length <= 15) { dial.xaxis.tick0 = 1; dial.xaxis.dtick = 1; }
+    dial.yaxis.range = [Math.min(20, Math.min(...times) - 2), Math.max(36, Math.max(...times) + 2)];
+    dial.yaxis.title = { text: 'time (s)', font: { size: 11 } };
+    dial.shapes = [
+      ...targetShapes(t, { xref: 'paper', yref: 'y', x0: 0, x1: 1, y0: T.timeMin, y1: T.timeMax }),
+      ...segs.slice(1).map(g => ({ type: 'line', xref: 'x', yref: 'paper', x0: g.fromN - 0.5, x1: g.fromN - 0.5, y0: 0, y1: 1,
+        line: { color: t.text, width: 1, dash: 'dash' } }))
+    ];
+    dial.annotations = segs.map(g => ({ x: g.fromN - 0.5, y: 1, xref: 'x', yref: 'paper', xanchor: 'left', yanchor: 'top',
+      xshift: 3, showarrow: false, text: `G${g.grind}`, font: { size: 10, color: t.text } }));
+    Plotly.react('espresso-chart-dialin', shotTraces(t, cs, 'n', 'timeSeconds', true), dial, CHART_CONFIG);
   }
 
   function isCurrentShot(shot) {

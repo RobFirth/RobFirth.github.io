@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Second game, Flashcards: one sight word at a time, large, in coloured decks. Next and back by tap, swipe or keyboard, an optional speaker button, and an "All done!" screen. Two word modes, switched by a grown-up behind a press-and-hold button, each with an "All" deck; a Focus deck of words a grown-up picks; mixed decks show each card in its group colour. A grown-up can mark decks with a rosette. Not a quiz: no score, no timer, and nothing leaves the device.
 - Flashcards: a third word mode, Tricky (1), with the Year 1 common exception words from the national curriculum in four decks, between the two existing modes.
 - Flashcards: an "i" button beside the grown-ups cog opens a bubble with a "How to use" guide for children and grown-ups. A plain tap opens it; it changes nothing. A host page can add its own sections to the bubble.
+- Espresso: dial-in charts on the bean page, below the shot form and collapsed by default: where shots land against the 25–32 s, 1:1.8–2.2 target, and shot time by shot number with grind changes marked. Newest shot highlighted, older ones fade. Shown from three shots; open or closed is remembered on the device.
 
 ### Changed
 - Family page: reads the account's role after sign-in. Child accounts go to `/kids/`; an account without a role is asked to sign out and sign in again.

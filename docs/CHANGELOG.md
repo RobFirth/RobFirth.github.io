@@ -17,8 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Flashcards: a third word mode, Tricky (1), with the Year 1 common exception words from the national curriculum in four decks, between the two existing modes.
 - Flashcards: an "i" button beside the grown-ups cog opens a bubble with a "How to use" guide for children and grown-ups. A plain tap opens it; it changes nothing. A host page can add its own sections to the bubble.
 - Espresso: dial-in charts on the bean page, below the shot form and collapsed by default: where shots land against the 25–32 s, 1:1.8–2.2 target, and shot time by shot number with grind changes marked. Newest shot highlighted, older ones fade. Shown from three shots; open or closed is remembered on the device.
+- Espresso: the all-beans Ageing charts stop at 6 weeks off roast, with a note when shots run past the edge and a 6 weeks / All switch.
 - Espresso: the bean page's Dial-in chart can show shot time by days off roast instead of shot number (remembered on the device; offered when the bean has a roast date).
-- Espresso: a collapsed Charts card on the bean list covering every bean, archived included: where shots land with the four most recent bags in colour; grind and shot time by days off roast, one line per bag; and caff or decaf heat maps of grind × time and time × ratio, with coarse or fine bins.
+- Espresso: a collapsed Charts card on the bean list covering every bean, archived included: where shots land with the four most recent bags in colour; grind and shot time by days off roast, one line per bag; and caff or decaf heat maps of grind × time and time × ratio, drawn as smoothed density contours in viridis with each shot as a dot (Smooth or Detailed).
 
 ### Changed
 - Family page: reads the account's role after sign-in. Child accounts go to `/kids/`; an account without a role is asked to sign out and sign in again.

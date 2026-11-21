@@ -955,7 +955,46 @@
 
   .espresso-bean-row { flex-wrap: wrap; }
 
-  .espresso-bean-name { flex: 1 1 100%; }
+  .espresso-bean-name { flex: 1 1 100%; overflow-wrap: anywhere; }
+
+  /* Bean list as tiles. Scoped by id: the crossword solves list and the shot
+     history share .solves-list / .solve-row and stay as they are. No height
+     cap — a nested scroll area of tiles is awkward on a phone. */
+  #espresso-bean-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  #espresso-bean-list .espresso-bean-row {
+    gap: 6px 12px;
+    padding: 13px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  #espresso-bean-list .espresso-bean-row:hover,
+  #espresso-bean-list .espresso-bean-row:focus-visible {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+  }
+
+  #espresso-bean-list .espresso-bean-row:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  #espresso-bean-list .espresso-bean-archived { opacity: 0.7; }
+
+  .espresso-last-shot {
+    flex: 1 1 100%;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+  }
 
   .espresso-tag {
     font-family: var(--font-display);
@@ -3168,6 +3207,7 @@
 
   let espressoBeans = [];      // every bean, as fetched
   let espressoBeanRows = [];   // what the list shows; a row's data-index points here
+  let espressoLastShot = new Map(); // beanId → millis of its newest shot, anyone's
   let espressoBean = null;     // the bean open in detail, null on the list
   let espressoShots = [];      // that bean's shots, newest first
   let editingBean = null;      // bean in the form, null when adding
@@ -3320,8 +3360,15 @@
   async function loadBeans() {
     crosswordMsg('espresso-beans-msg', '', 'error');
     try {
-      const snap = await db.collection(BEANS).get();
+      // Every shot, no `where`, so no index: a household logs a few a day, so
+      // this stays cheap for years. If it ever isn't, store lastShotAt on the bean.
+      // A failed shots read mustn't hide the beans: they sort by createdAt instead.
+      const [snap, shotSnap] = await Promise.all([
+        db.collection(BEANS).get(),
+        db.collection(SHOTS).get().catch(err => { console.error('Error loading shots for the bean order:', err); return null; })
+      ]);
       espressoBeans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      espressoLastShot = newestShotByBean(shotSnap ? shotSnap.docs.map(d => d.data()) : []);
       renderBeanList();
     } catch (err) {
       console.error('Error loading beans:', err);
@@ -3331,25 +3378,68 @@
 
   function renderBeanList() {
     const showArchived = document.getElementById('espresso-show-archived').checked;
-    espressoBeanRows = espressoBeans
-      .filter(b => showArchived || b.active === true)
-      .sort((a, b) => (b.active === true) - (a.active === true)
-        || a.roaster.localeCompare(b.roaster)
-        || a.name.localeCompare(b.name));
+    espressoBeanRows = sortBeansForList(
+      espressoBeans.filter(b => showArchived || b.active === true), espressoLastShot);
 
-    document.getElementById('espresso-bean-list').innerHTML = espressoBeanRows.map((b, i) => `
+    const now = new Date();
+    document.getElementById('espresso-bean-list').innerHTML = espressoBeanRows.map((b, i) => {
+      const last = espressoLastShot.get(b.id);
+      return `
       <li>
-        <button type="button" class="solve-row espresso-bean-row" data-index="${i}">
+        <button type="button" class="solve-row espresso-bean-row${b.active === true ? '' : ' espresso-bean-archived'}" data-index="${i}">
           <span class="espresso-bean-name">${escapeHtml(beanLabel(b))}${beanTags(b)}</span>
           <span class="espresso-recipe${b.current ? '' : ' espresso-no-recipe'}">${b.current ? escapeHtml(recipeLine(b.current)) : 'No recipe yet'}</span>
+          ${last ? `<span class="espresso-last-shot">${escapeHtml(lastShotLabel(last, now))}</span>` : ''}
         </button>
-      </li>`).join('');
+      </li>`;
+    }).join('');
 
     const empty = document.getElementById('espresso-beans-empty');
     empty.textContent = espressoBeans.length
       ? 'No active beans — tick "Show archived" to see the old ones.'
       : 'No beans yet — add your first bag. ☕';
     empty.classList.toggle('hidden', espressoBeanRows.length > 0);
+  }
+
+  // beanId → millis of the bean's newest shot. A pending or missing pulledAt
+  // counts as 0, as in shotMillis(), so it never makes a bean look used.
+  function newestShotByBean(shots) {
+    const m = new Map();
+    for (const s of shots) {
+      const t = shotMillis(s);
+      if (t > (m.get(s.beanId) || 0)) m.set(s.beanId, t);
+    }
+    return m;
+  }
+
+  // When a bean was last used: its newest shot, or when it was added if that's
+  // later (a new bag rises to the top). Not updatedAt — an edit isn't a use.
+  function beanLastUsed(bean, lastShot) {
+    const created = bean.createdAt && bean.createdAt.toMillis ? bean.createdAt.toMillis() : 0;
+    return Math.max(lastShot.get(bean.id) || 0, created);
+  }
+
+  // Active first, then most recently used, then roaster and name so ties are stable.
+  // Returns a new array; the list's data-index points into it.
+  function sortBeansForList(beans, lastShot) {
+    return beans.slice().sort((a, b) => (b.active === true) - (a.active === true)
+      || beanLastUsed(b, lastShot) - beanLastUsed(a, lastShot)
+      || a.roaster.localeCompare(b.roaster)
+      || a.name.localeCompare(b.name));
+  }
+
+  // "Last shot today" / "yesterday" / "3 days ago", then a date after two weeks
+  // ("12 Oct", with the year when it isn't this year). Calendar days, local time.
+  function lastShotLabel(ms, now = new Date()) {
+    const d = new Date(ms);
+    const midnight = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+    const days = Math.round((midnight(now) - midnight(d)) / 86400000); // round: DST days are 23 or 25 h
+    if (days <= 0) return 'Last shot today';
+    if (days === 1) return 'Last shot yesterday';
+    if (days < 14) return `Last shot ${days} days ago`;
+    const opts = { day: 'numeric', month: 'short' };
+    if (d.getFullYear() !== now.getFullYear()) opts.year = 'numeric';
+    return `Last shot ${d.toLocaleDateString('en-GB', opts)}`;
   }
 
   document.getElementById('espresso-bean-list').addEventListener('click', e => {

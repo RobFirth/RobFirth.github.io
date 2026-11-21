@@ -3,9 +3,11 @@
 import { matchSets, pictureFor } from './data/words.js';
 import match from './games/match.js';
 import flashcards from './games/flashcards.js';
+import drawings from './games/drawings.js';
+import { mountDrawingsAdmin } from './drawings-admin.js';
 
 // Registry: adding a game is one file, one import and one entry here.
-const GAMES = [match, flashcards];
+const GAMES = [match, flashcards, drawings];
 
 // ── Firebase (public web config, duplicated from the family page by design) ──
 const firebaseConfig = {
@@ -21,7 +23,7 @@ const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
 const $ = id => document.getElementById(id);
-const VIEWS = ['loading', 'signin', 'norole', 'menu', 'game', 'sheet'];
+const VIEWS = ['loading', 'signin', 'norole', 'menu', 'game', 'sheet', 'drawings'];
 function showView(name) {
   VIEWS.forEach(v => $('view-' + v).classList.toggle('hidden', v !== name));
 }
@@ -91,12 +93,14 @@ async function readRole(user) {
 // ── State ──
 let currentRole = null;
 let cleanupGame = null;
+let cleanupDrawings = null;
 let authSeq = 0;
 
 function stopGame() {
   if (cleanupGame) { try { cleanupGame(); } catch (e) { console.error('Game cleanup failed:', e); } }
   cleanupGame = null;
   $('game-root').replaceChildren();
+  stopDrawings();
 }
 
 auth.onAuthStateChanged(async user => {
@@ -164,7 +168,8 @@ function startGame(game) {
     load: () => { const g = loadSettings().games[game.id]; return g && typeof g === 'object' ? { ...g } : {}; },
     save: obj => { const all = loadSettings(); updateSettings({ games: { ...all.games, [game.id]: { ...obj } } }); }
   });
-  const ctx = Object.freeze({ exit: goHome, settings, say, canSpeak });
+  // role lets a game say more to a grown-up (Our pictures: how many more drawings are needed)
+  const ctx = Object.freeze({ exit: goHome, settings, say, canSpeak, role: currentRole });
   showView('game');
   try {
     const cleanup = game.mount(root, ctx);
@@ -224,6 +229,7 @@ $('corner-close').addEventListener('click', closeCorner);
 $('corner').addEventListener('click', e => { if (e.target === e.currentTarget) closeCorner(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCorner(); });
 $('corner-sheet').addEventListener('click', () => { if (currentRole === 'adult') { closeCorner(); showSheet(); } });
+$('corner-drawings').addEventListener('click', () => { closeCorner(); showDrawings(); });
 
 // ── Picture sheet (adults only) ──
 function showSheet() {
@@ -251,3 +257,17 @@ function showSheet() {
   $('view-sheet').scrollTop = 0;
 }
 $('btn-sheet-home').addEventListener('click', () => showMenu());
+
+// ── Our drawings (adults only): anyone else who gets here is sent to the menu ──
+function stopDrawings() {
+  if (cleanupDrawings) { try { cleanupDrawings(); } catch (e) { console.error('Drawings screen cleanup failed:', e); } }
+  cleanupDrawings = null;
+  $('drawings-root').replaceChildren();
+}
+function showDrawings() {
+  stopGame();
+  if (currentRole !== 'adult') { if (currentRole) showMenu(); else showView('signin'); return; }
+  showView('drawings');
+  cleanupDrawings = mountDrawingsAdmin($('drawings-root'));
+}
+$('btn-drawings-home').addEventListener('click', () => { stopDrawings(); showMenu(); });

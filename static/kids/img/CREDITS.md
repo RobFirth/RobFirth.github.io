@@ -56,3 +56,4 @@ Simple flat drawings made for this site (64×64 viewBox, palette colours). No th
 | `card-back.svg` | card back pattern (swappable) |
 | `match.svg` | Match game icon |
 | `flashcards.svg` | Flashcards game icon |
+| `drawings.svg` | Our pictures game icon (a drawing and a crayon) |

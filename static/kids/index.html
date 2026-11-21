@@ -59,21 +59,33 @@
   <div id="sheet-body"></div>
 </div>
 
+<div id="view-drawings" class="view view-scroll hidden">
+  <button id="btn-drawings-home" class="home-btn" type="button" aria-label="Home">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 12h3v8h5v-6h4v6h5v-8h3z"/></svg>
+  </button>
+  <h1 class="sheet-title">Our drawings</h1>
+  <div id="drawings-root"></div>
+</div>
+
 <div id="corner" class="corner hidden" role="dialog" aria-modal="true" aria-labelledby="corner-title">
   <div class="corner-panel">
     <h2 id="corner-title">Grown-ups</h2>
     <button id="set-sound" class="btn btn-toggle" type="button" aria-pressed="true">Sound <span class="state"></span></button>
     <button id="set-timer" class="btn btn-toggle" type="button" aria-pressed="true">Timer <span class="state"></span></button>
     <a id="corner-family" class="btn btn-plain adult-only" href="/family/">Family page</a>
-    <button id="corner-sheet" class="btn btn-plain adult-only" type="button">Picture sheet</button>
+    <div class="corner-row adult-only">
+      <button id="corner-sheet" class="btn btn-plain adult-only" type="button">Picture sheet</button>
+      <button id="corner-drawings" class="btn btn-plain adult-only" type="button">Our drawings</button>
+    </div>
     <button id="corner-signout" class="btn btn-plain" type="button">Sign out</button>
     <button id="corner-close" class="btn btn-primary" type="button">Done</button>
   </div>
 </div>
 
-<!-- Firebase compat SDKs (app and auth only), same version as the family page -->
+<!-- Firebase compat SDKs, same version as the family page. Firestore is for Our pictures. -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script type="module" src="shell.js"></script>
 </body>
 </html>

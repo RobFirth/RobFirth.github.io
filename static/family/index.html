@@ -48,6 +48,10 @@
     --chart-setter-3: #27ae60;
     --chart-setter-4: #3498db;
     --chart-setter-other: #aeb6bf;
+    /* V60 taste on the pour-over dial-in chart: lemon, green, roast brown; an untasted brew is --text-dim */
+    --chart-sour: #e3b341;
+    --chart-balanced: #3fb950;
+    --chart-bitter: #b0623a;
     --chart-target: #56b06e; /* espresso target band: a muted green, drawn at ~12% fill with a dashed edge */
     --decaf: #b9dcff; /* pale blue, well clear of --accent so the tag reads as a label */
     /* Tracker levels: one hue, light to dark, interpolated for however many
@@ -954,6 +958,28 @@
 
   .espresso-secondary:hover { color: var(--text); border-color: var(--text-dim); }
 
+  /* V60 log: a one-line hint under a field, and the three taste buttons */
+  .espresso-field-hint { color: var(--text-dim); font-size: 0.7rem; line-height: 1.3; max-width: 260px; }
+  .espresso-taste { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; color: var(--text-muted); flex: 1 1 100%; }
+  .espresso-taste-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+  .espresso-taste-button {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    min-width: 88px;
+    min-height: 44px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .espresso-taste-button[aria-pressed="true"] { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .coffee-method-switch { margin-bottom: 16px; }
+  .coffee-method-switch .crossword-tab { min-width: 96px; padding: 10px 18px; font-size: 0.85rem; }
+  .espresso-detail-current .coffee-recipe-line { display: block; }
+
   .espresso-bean-row { flex-wrap: wrap; }
 
   .espresso-bean-name { flex: 1 1 100%; overflow-wrap: anywhere; }
@@ -1474,8 +1500,8 @@
 
       <div class="app-card" onclick="openEspresso()" style="cursor:pointer;">
         <span class="card-icon">☕</span>
-        <h3>Espresso</h3>
-        <p>Bean recipes and shot log.</p>
+        <h3>Coffee</h3>
+        <p>Our beans, shots and pour-overs.</p>
       </div>
 
       <!-- Shown only to a member with a tracker config (see refreshTrackerCard) -->
@@ -1708,8 +1734,8 @@
     <button onclick="closeEspresso()" style="background:none; border:1px solid rgba(255,255,255,0.3); color:white; padding:8px 16px; border-radius:6px; cursor:pointer; margin-bottom:20px; font-family:inherit;">← Back to dashboard</button>
 
     <div class="crossword-header">
-      <h1>☕ Espresso</h1>
-      <p>Our bean recipes and shots.</p>
+      <h1>☕ Coffee</h1>
+      <p>Our beans, shots and pour-overs.</p>
     </div>
 
     <!-- Add/edit bean — outside both panes, reachable from either -->
@@ -1792,6 +1818,7 @@
             aria-expanded="false" aria-controls="espresso-global-body" onclick="toggleGlobalCharts()">Charts ▾</button>
         </h2>
         <div id="espresso-global-body" class="hidden">
+          <p class="espresso-chart-caption">Espresso shots only · V60 brews are charted on each bean's page</p>
           <h3 class="espresso-chart-section">Target</h3>
           <p id="espresso-global-target-caption" class="espresso-chart-caption"></p>
           <div id="espresso-global-target" class="chart-box"></div>
@@ -1852,6 +1879,13 @@
         <button type="button" class="espresso-secondary espresso-detail-current" onclick="closeBeanDetail()">← All beans</button>
       </div>
 
+      <!-- Method switch: opens on the method of the bean's newest log, espresso if none -->
+      <div class="crossword-tabs coffee-method-switch" role="tablist" aria-label="Brew method">
+        <button type="button" class="crossword-tab active" role="tab" id="coffee-method-espresso" aria-selected="true" onclick="setCoffeeMethod('espresso')">Espresso</button>
+        <button type="button" class="crossword-tab" role="tab" id="coffee-method-v60" aria-selected="false" onclick="setCoffeeMethod('v60')">V60</button>
+      </div>
+
+      <div id="coffee-pane-espresso">
       <div class="crossword-card">
         <h2 id="espresso-shot-title">Log a shot</h2>
         <p id="espresso-shot-hint" class="crossword-hint"></p>
@@ -1918,6 +1952,70 @@
         <ul id="espresso-shot-list" class="solves-list"></ul>
         <p id="espresso-shots-empty" class="crossword-empty hidden">No shots logged for this bean yet.</p>
         <p id="espresso-shots-msg" class="form-msg"></p>
+      </div>
+      </div>
+
+      <!-- V60 pour-over: same bean, its own log, history and chart -->
+      <div id="coffee-pane-v60" class="hidden">
+      <div class="crossword-card">
+        <h2 id="espresso-brew-title">Log a brew</h2>
+        <p id="espresso-brew-hint" class="crossword-hint"></p>
+        <form class="crossword-form espresso-form" onsubmit="submitBrew(event)">
+          <label class="espresso-field">Grind (clicks)
+            <input type="text" id="espresso-brew-grind" inputmode="numeric" maxlength="2" autocomplete="off">
+          </label>
+          <label class="espresso-field">Coffee (g)
+            <input type="text" id="espresso-brew-dose" inputmode="decimal" maxlength="5" autocomplete="off">
+          </label>
+          <label class="espresso-field">Water (g)
+            <input type="text" id="espresso-brew-water" inputmode="decimal" maxlength="7" autocomplete="off">
+            <span class="espresso-field-hint">poured, scale tared with the cone and grounds on</span>
+          </label>
+          <div class="espresso-taste" role="group" aria-labelledby="espresso-brew-taste-label">
+            <span id="espresso-brew-taste-label">Taste (optional)</span>
+            <div class="espresso-taste-buttons" id="espresso-brew-taste">
+              <button type="button" class="espresso-taste-button" data-taste="sour" aria-pressed="false">Sour</button>
+              <button type="button" class="espresso-taste-button" data-taste="balanced" aria-pressed="false">Balanced</button>
+              <button type="button" class="espresso-taste-button" data-taste="bitter" aria-pressed="false">Bitter</button>
+            </div>
+            <span class="espresso-field-hint">Sour → finer · Bitter → coarser</span>
+          </div>
+          <label class="espresso-field">Time (optional)
+            <input type="text" id="espresso-brew-time" placeholder="M:SS" inputmode="numeric" maxlength="5" autocomplete="off">
+            <span class="espresso-field-hint">first pour to drawdown finished; skip if you didn't time it</span>
+          </label>
+          <label class="espresso-field espresso-field-text">Notes (optional)
+            <textarea id="espresso-brew-notes" rows="2" maxlength="280"></textarea>
+          </label>
+          <label class="crossword-check">
+            <input type="checkbox" id="espresso-brew-make-current">
+            Make this the current V60 recipe
+          </label>
+          <button type="submit" class="crossword-submit" id="espresso-brew-submit">Log brew</button>
+          <button type="button" class="espresso-secondary hidden" id="espresso-brew-cancel" onclick="cancelBrewEdit()">Cancel</button>
+        </form>
+        <p id="espresso-brew-msg" class="form-msg"></p>
+      </div>
+
+      <!-- V60 dial-in: shown from 3 brews, collapsed by default, drawn only while open -->
+      <div id="pourover-charts-card" class="crossword-card hidden">
+        <h2 class="espresso-charts-heading">
+          <button type="button" id="pourover-charts-toggle" class="espresso-charts-toggle"
+            aria-expanded="false" aria-controls="pourover-charts-body" onclick="togglePouroverCharts()">Charts ▾</button>
+        </h2>
+        <div id="pourover-charts-body" class="hidden">
+          <p class="espresso-chart-caption">Dial-in · grind clicks by brew, coloured by taste</p>
+          <div id="pourover-chart-dialin" class="chart-box"></div>
+          <p id="pourover-charts-msg" class="form-msg"></p>
+        </div>
+      </div>
+
+      <div class="crossword-card">
+        <h2>Brew history</h2>
+        <ul id="espresso-brew-list" class="solves-list"></ul>
+        <p id="espresso-brews-empty" class="crossword-empty hidden">No V60 brews logged for this bean yet.</p>
+        <p id="espresso-brews-msg" class="form-msg"></p>
+      </div>
       </div>
     </div>
   </div>
@@ -2814,7 +2912,11 @@
       setterOther: v('--chart-setter-other'),
       setterNone: v('--text-dim'),
       accent: v('--accent'),
-      target: v('--chart-target')
+      target: v('--chart-target'),
+      sour: v('--chart-sour'),
+      balanced: v('--chart-balanced'),
+      bitter: v('--chart-bitter'),
+      untasted: v('--text-dim')
     };
   }
 
@@ -3325,6 +3427,15 @@
   // Clock fields, escaping and messages reuse the crossword helpers above.
   const BEANS = 'espresso_beans';
   const SHOTS = 'espresso_shots';
+  // V60 pour-over at work, same bags. Fixed kit, not stored: V60 with paper
+  // filters, Timemore C3 Pro (grind = clicks from zero, burrs fully tight),
+  // on-wall boiler. `water` is what the scale reads with cone, filter and
+  // grounds tared, so it's water poured, not liquid in the cup.
+  const BREWS = 'pourover_brews';
+  const V60_DEFAULT = { dose: 15, water: 250 }; // Hoffmann's one cup
+  const TASTES = { sour: 'Sour', balanced: 'Balanced', bitter: 'Bitter' };
+  const POUR_CHARTS_OPEN_KEY = 'pourover.chartsOpen';
+  const POUR_CHART_IDS = ['pourover-chart-dialin'];
   // Where a dialled-in shot lands. Plain constants, not settings.
   const ESPRESSO_TARGET = { timeMin: 25, timeMax: 32, ratioMin: 1.8, ratioMax: 2.2 };
   const CHARTS_OPEN_KEY = 'espresso.chartsOpen';
@@ -3345,6 +3456,14 @@
   let espressoBeanRows = [];   // what the list shows; a row's data-index points here
   let espressoLastShot = new Map(); // beanId → millis of its newest shot, anyone's
   let espressoAllShots = null;      // every shot, from the list's read; null if that read failed
+  let espressoNewestShot = new Map(); // beanId → its newest shot, for a tile with no current recipe
+  let espressoLastBrew = new Map();   // beanId → its newest V60 brew, anyone's
+  let espressoLastUsed = new Map();   // beanId → millis of its newest shot or brew, for the list order
+  let coffeeMethod = 'espresso';      // the bean page's switch: 'espresso' | 'v60'
+  let espressoBrews = [];      // the open bean's V60 brews, newest first
+  let editingBrew = null;      // own brew in the brew form, null when logging a new one
+  let confirmingBrewId = null; // brew whose row is asking "Delete this brew?"
+  let pouroverChartsOpen = readPref(POUR_CHARTS_OPEN_KEY, ['1', '0'], '0') === '1';
   let espressoBean = null;     // the bean open in detail, null on the list
   let espressoShots = [];      // that bean's shots, newest first
   let editingBean = null;      // bean in the form, null when adding
@@ -3360,10 +3479,18 @@
   let espressoHeatSmoothing = readPref('espresso.heatSmoothing', ['smooth', 'detailed'], 'smooth');
 
   wireClockInput(document.getElementById('espresso-shot-time'));
+  wireClockInput(document.getElementById('espresso-brew-time'));
 
   // "G7 · 18→36g · 28s · 1:2.0" — the ratio is always computed, never stored
   function recipeLine(r) {
     return `G${r.grind} · ${r.dose}→${r.yield}g · ${r.timeSeconds}s · 1:${(r.yield / r.dose).toFixed(1)}`;
+  }
+
+  // "C15 · 15g:250g · 3:10 · 1:16.7" — clicks, coffee:water, time when it was
+  // timed, then the brew ratio water/dose (computed, never stored)
+  function pourLine(r) {
+    const time = typeof r.timeSeconds === 'number' ? ` · ${formatSecondsToClock(r.timeSeconds)}` : '';
+    return `C${r.grind} · ${r.dose}g:${r.water}g${time} · 1:${(r.water / r.dose).toFixed(1)}`;
   }
 
   // Optional text on a bean, in form order. Length limits match the rules.
@@ -3466,16 +3593,17 @@
   // Grams as typed on the scales; null if malformed or outside the rules' bounds
   function parseGrams(value, min, max) {
     const t = String(value ?? '').trim();
-    if (!/^\d{1,3}(\.\d{1,2})?$/.test(t)) return null;
+    if (!/^\d{1,4}(\.\d{1,2})?$/.test(t)) return null; // four digits for a litre of V60 water
     const n = parseFloat(t);
     return n >= min && n <= max ? n : null;
   }
 
-  function parseGrind(value) {
+  // Espresso grind 1–16 on the Barista Express; V60 passes 40, C3 clicks
+  function parseGrind(value, max = 16) {
     const t = String(value ?? '').trim();
     if (!/^\d{1,2}$/.test(t)) return null;
     const n = parseInt(t, 10);
-    return n >= 1 && n <= 16 ? n : null;
+    return n >= 1 && n <= max ? n : null;
   }
 
   function audit() {
@@ -3488,6 +3616,18 @@
   // The bean update behind both "make current" paths
   function currentPatch(shotId, recipe) {
     return { current: { shotId, ...recipeOf(recipe) }, ...audit() };
+  }
+
+  // The fields a brew shares with a bean's `currentV60`; time only if it was timed
+  function pourRecipeOf(r) {
+    const out = { dose: r.dose, water: r.water, grind: r.grind };
+    if (typeof r.timeSeconds === 'number') out.timeSeconds = r.timeSeconds;
+    return out;
+  }
+
+  // Written whole, so an untimed brew made current drops the old time too
+  function currentV60Patch(brewId, recipe) {
+    return { currentV60: { brewId, ...pourRecipeOf(recipe) }, ...audit() };
   }
 
   function openEspresso() {
@@ -3509,13 +3649,22 @@
       // Every shot, no `where`, so no index: a household logs a few a day, so
       // this stays cheap for years. If it ever isn't, store lastShotAt on the bean.
       // A failed shots read mustn't hide the beans: they sort by createdAt instead.
-      const [snap, shotSnap] = await Promise.all([
+      // V60 brews are read the same way, with the same rule: a failed read
+      // leaves the order to shots alone.
+      const [snap, shotSnap, brewSnap] = await Promise.all([
         db.collection(BEANS).get(),
-        db.collection(SHOTS).get().catch(err => { console.error('Error loading shots for the bean order:', err); return null; })
+        db.collection(SHOTS).get().catch(err => { console.error('Error loading shots for the bean order:', err); return null; }),
+        db.collection(BREWS).get().catch(err => { console.error('Error loading brews for the bean order:', err); return null; })
       ]);
       espressoBeans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       espressoAllShots = shotSnap ? shotSnap.docs.map(d => ({ id: d.id, ...d.data() })) : null;
       espressoLastShot = newestShotByBean(espressoAllShots || []);
+      espressoNewestShot = newestByBean(espressoAllShots || [], shotMillis);
+      espressoLastBrew = newestByBean(brewSnap ? brewSnap.docs.map(d => ({ id: d.id, ...d.data() })) : [], brewMillis);
+      espressoLastUsed = new Map(espressoLastShot);
+      for (const [id, b] of espressoLastBrew) {
+        espressoLastUsed.set(id, Math.max(espressoLastUsed.get(id) || 0, brewMillis(b)));
+      }
       renderBeanList();
       syncGlobalCharts();
     } catch (err) {
@@ -3527,17 +3676,17 @@
   function renderBeanList() {
     const showArchived = document.getElementById('espresso-show-archived').checked;
     espressoBeanRows = sortBeansForList(
-      espressoBeans.filter(b => showArchived || b.active === true), espressoLastShot);
+      espressoBeans.filter(b => showArchived || b.active === true), espressoLastUsed);
 
     const now = new Date();
     document.getElementById('espresso-bean-list').innerHTML = espressoBeanRows.map((b, i) => {
-      const last = espressoLastShot.get(b.id);
+      const tile = beanTile(b);
       return `
       <li>
         <button type="button" class="solve-row espresso-bean-row${b.active === true ? '' : ' espresso-bean-archived'}" data-index="${i}">
           <span class="espresso-bean-name">${escapeHtml(beanLabel(b))}${beanTags(b)}</span>
-          <span class="espresso-recipe${b.current ? '' : ' espresso-no-recipe'}">${b.current ? escapeHtml(recipeLine(b.current)) : 'No recipe yet'}</span>
-          ${last ? `<span class="espresso-last-shot">${escapeHtml(lastShotLabel(last, now))}</span>` : ''}
+          <span class="espresso-recipe${tile.recipe ? '' : ' espresso-no-recipe'}">${tile.recipe ? escapeHtml(tile.recipe) : 'No recipe yet'}</span>
+          ${tile.last ? `<span class="espresso-last-shot">${escapeHtml(lastShotLabel(tile.last, now, tile.what))}</span>` : ''}
         </button>
       </li>`;
     }).join('');
@@ -3560,6 +3709,30 @@
     return m;
   }
 
+  // beanId → that bean's newest doc by `millis` (anyone's). A pending time counts as 0.
+  function newestByBean(docs, millis) {
+    const m = new Map();
+    for (const d of docs) {
+      const prev = m.get(d.beanId);
+      if (!prev || millis(d) > millis(prev)) m.set(d.beanId, d);
+    }
+    return m;
+  }
+
+  // Which method was used last decides the tile: its current recipe, or the
+  // newest log's when none is set. A tie (both 0, nothing logged) is espresso.
+  function beanTile(bean) {
+    const brew = espressoLastBrew.get(bean.id), shot = espressoNewestShot.get(bean.id);
+    const brewMs = brew ? brewMillis(brew) : 0, shotMs = espressoLastShot.get(bean.id) || 0;
+    if (brew && brewMs > shotMs) {
+      return { recipe: `V60 · ${pourLine(bean.currentV60 || brew)}`, last: brewMs, what: 'V60' };
+    }
+    const r = bean.current || shot || null;
+    if (r) return { recipe: recipeLine(r), last: shotMs, what: 'shot' };
+    if (bean.currentV60) return { recipe: `V60 · ${pourLine(bean.currentV60)}`, last: brewMs, what: 'V60' };
+    return { recipe: null, last: Math.max(shotMs, brewMs), what: brewMs > shotMs ? 'V60' : 'shot' };
+  }
+
   // When a bean was last used: its newest shot, or when it was added if that's
   // later (a new bag rises to the top). Not updatedAt — an edit isn't a use.
   function beanLastUsed(bean, lastShot) {
@@ -3578,16 +3751,17 @@
 
   // "Last shot today" / "yesterday" / "3 days ago", then a date after two weeks
   // ("12 Oct", with the year when it isn't this year). Calendar days, local time.
-  function lastShotLabel(ms, now = new Date()) {
+  // `what` is 'shot' or 'V60', whichever was used last.
+  function lastShotLabel(ms, now = new Date(), what = 'shot') {
     const d = new Date(ms);
     const midnight = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
     const days = Math.round((midnight(now) - midnight(d)) / 86400000); // round: DST days are 23 or 25 h
-    if (days <= 0) return 'Last shot today';
-    if (days === 1) return 'Last shot yesterday';
-    if (days < 14) return `Last shot ${days} days ago`;
+    if (days <= 0) return `Last ${what} today`;
+    if (days === 1) return `Last ${what} yesterday`;
+    if (days < 14) return `Last ${what} ${days} days ago`;
     const opts = { day: 'numeric', month: 'short' };
     if (d.getFullYear() !== now.getFullYear()) opts.year = 'numeric';
-    return `Last shot ${d.toLocaleDateString('en-GB', opts)}`;
+    return `Last ${what} ${d.toLocaleDateString('en-GB', opts)}`;
   }
 
   document.getElementById('espresso-bean-list').addEventListener('click', e => {
@@ -3747,29 +3921,64 @@
   function openBeanDetail(bean) {
     espressoBean = bean;
     espressoShots = [];
+    espressoBrews = [];
     editingShot = null;
     confirmingShotId = null;
+    editingBrew = null;
+    confirmingBrewId = null;
     syncShotForm();
+    syncBrewForm();
     closeBeanForm();
-    ['espresso-detail-msg', 'espresso-shot-msg', 'espresso-shots-msg']
+    ['espresso-detail-msg', 'espresso-shot-msg', 'espresso-shots-msg', 'espresso-brew-msg', 'espresso-brews-msg']
       .forEach(id => crosswordMsg(id, '', 'error'));
     document.getElementById('espresso-shot-list').innerHTML = '';
     document.getElementById('espresso-shots-empty').classList.add('hidden');
-    syncEspressoCharts(); // no shots yet: hidden, and the last bean's charts purged
+    document.getElementById('espresso-brew-list').innerHTML = '';
+    document.getElementById('espresso-brews-empty').classList.add('hidden');
+    // A first guess from the list's reads, settled once this bean's own logs load
+    const brew = espressoLastBrew.get(bean.id);
+    coffeeMethod = methodFor(espressoLastShot.get(bean.id) || 0, brew ? brewMillis(brew) : 0);
+    syncCoffeeMethod(); // no logs yet: charts hidden, and the last bean's purged
     renderBeanHeader();
     prefillShotForm(bean.current); // overwritten by the newest shot once loaded
+    prefillBrewForm(bean.currentV60); // likewise by the newest brew
     setEspressoPane(true);
-    renderBeanDetail({ prefill: true });
+    renderBeanDetail({ prefill: true, pickMethod: true });
+  }
+
+  // The method of the newest log; espresso when there's none, or on a tie
+  function methodFor(shotMs, brewMs) {
+    return brewMs > shotMs ? 'v60' : 'espresso';
+  }
+
+  function setCoffeeMethod(method) {
+    coffeeMethod = method;
+    syncCoffeeMethod();
+  }
+
+  // Only the visible method's charts are drawn; the hidden one's are purged
+  function syncCoffeeMethod() {
+    const v60 = coffeeMethod === 'v60';
+    markSwitch([{ id: 'coffee-method-espresso', on: !v60 }, { id: 'coffee-method-v60', on: v60 }]);
+    document.getElementById('coffee-pane-espresso').classList.toggle('hidden', v60);
+    document.getElementById('coffee-pane-v60').classList.toggle('hidden', !v60);
+    syncEspressoCharts();
+    syncPouroverCharts();
   }
 
   function closeBeanDetail() {
     espressoBean = null;
     editingShot = null;
     confirmingShotId = null;
+    editingBrew = null;
+    confirmingBrewId = null;
     syncShotForm();
+    syncBrewForm();
     closeBeanForm();
     purgeEspressoCharts();
+    purgePouroverCharts();
     document.getElementById('espresso-charts-card').classList.add('hidden');
+    document.getElementById('pourover-charts-card').classList.add('hidden');
     setEspressoPane(false);
     loadBeans();
   }
@@ -3782,34 +3991,63 @@
       bean.roastDate ? `Roasted ${friendlyDate(bean.roastDate)}` : '';
     document.getElementById('espresso-detail-origin').textContent = originLine(bean);
     document.getElementById('espresso-detail-notes').textContent = bean.roasterNotes || '';
+    // Each method's current recipe; named only when both are there
+    const lines = [];
+    if (bean.current) lines.push(['Espresso', recipeLine(bean.current)]);
+    if (bean.currentV60) lines.push(['V60', pourLine(bean.currentV60)]);
     const current = document.getElementById('espresso-detail-current');
-    current.textContent = bean.current ? recipeLine(bean.current) : 'No current recipe yet';
-    current.classList.toggle('espresso-no-recipe', !bean.current);
+    if (lines.length === 2) {
+      current.innerHTML = lines.map(([method, line]) =>
+        `<span class="coffee-recipe-line">${method} ${escapeHtml(line)}</span>`).join('');
+    } else {
+      current.textContent = lines.length ? lines[0][1] : 'No current recipe yet';
+    }
+    current.classList.toggle('espresso-no-recipe', !lines.length);
   }
 
   // A form mid-edit is only overwritten when asked: opening a bean or logging
   // a shot prefills, making a past shot current doesn't.
-  async function renderBeanDetail({ prefill = false } = {}) {
+  // pickMethod (opening a bean only) sets the switch from the newest log.
+  async function renderBeanDetail({ prefill = false, pickMethod = false } = {}) {
     if (!espressoBean) return; // a write finished after the user left the bean
     const id = espressoBean.id;
     crosswordMsg('espresso-shots-msg', '', 'error');
+    crosswordMsg('espresso-brews-msg', '', 'error');
     try {
-      const [beanDoc, shotSnap] = await Promise.all([
+      // A failed brews read leaves the espresso side working, and says so on the V60 side
+      const [beanDoc, shotSnap, brewSnap] = await Promise.all([
         db.collection(BEANS).doc(id).get(),
-        db.collection(SHOTS).where('beanId', '==', id).get()
+        db.collection(SHOTS).where('beanId', '==', id).get(),
+        db.collection(BREWS).where('beanId', '==', id).get()
+          .catch(err => { console.error('Error loading brews:', err); return null; })
       ]);
       if (!espressoBean || espressoBean.id !== id) return; // navigated away meanwhile
       espressoBean = { id, ...beanDoc.data() };
       espressoShots = shotSnap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => shotMillis(b) - shotMillis(a));
-      // The shot in the form may have gone, or stopped being the current recipe
+      if (brewSnap) {
+        espressoBrews = brewSnap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => brewMillis(b) - brewMillis(a));
+      } else {
+        crosswordMsg('espresso-brews-msg', 'Couldn\'t load the V60 brews. Please try again.', 'error');
+      }
+      // The shot or brew in the form may have gone, or stopped being current
       if (editingShot) editingShot = espressoShots.find(s => s.id === editingShot.id) || null;
+      if (editingBrew) editingBrew = espressoBrews.find(b => b.id === editingBrew.id) || null;
+      if (pickMethod) {
+        coffeeMethod = methodFor(espressoShots.length ? shotMillis(espressoShots[0]) : 0,
+          espressoBrews.length ? brewMillis(espressoBrews[0]) : 0);
+      }
       renderBeanHeader();
       renderShotList();
+      renderBrewList();
       if (prefill && !editingShot) prefillShotForm(espressoShots[0] || espressoBean.current);
+      if (prefill && !editingBrew && brewSnap) prefillBrewForm(espressoBrews[0] || espressoBean.currentV60);
       syncShotForm();
-      syncEspressoCharts();
+      syncBrewForm();
+      syncCoffeeMethod();
     } catch (err) {
       console.error('Error loading shots:', err);
       crosswordMsg('espresso-shots-msg', 'Couldn\'t load the shots. Please try again.', 'error');
@@ -3821,8 +4059,20 @@
   }
 
   function shotWhen(shot) {
-    if (!shot.pulledAt) return '';
-    const d = shot.pulledAt.toDate();
+    return whenText(shot.pulledAt);
+  }
+
+  function brewMillis(brew) {
+    return brew.brewedAt ? brew.brewedAt.toMillis() : 0;
+  }
+
+  function brewWhen(brew) {
+    return whenText(brew.brewedAt);
+  }
+
+  function whenText(ts) {
+    if (!ts) return '';
+    const d = ts.toDate();
     const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     return `${friendlyDate(localDateStr(d))}, ${time}`;
   }
@@ -3919,7 +4169,7 @@
     writePref('espresso.dialinAxis', axis);
     syncDialinSwitch(espressoBean);
     const cs = espressoBean ? chartShots(espressoShots, espressoBean) : [];
-    if (espressoChartsOpen && cs.length >= 3 && !plotlyMissing('espresso-charts-msg')) drawDialinChart(cs, chartTheme(), espressoBean);
+    if (espressoChartsOpen && coffeeMethod === 'espresso' && cs.length >= 3 && !plotlyMissing('espresso-charts-msg')) drawDialinChart(cs, chartTheme(), espressoBean);
   }
 
   // Card shown from 3 shots; charts drawn only while it's open, after the
@@ -3933,19 +4183,22 @@
     const toggle = document.getElementById('espresso-charts-toggle');
     toggle.setAttribute('aria-expanded', String(espressoChartsOpen && show));
     toggle.textContent = espressoChartsOpen ? 'Charts ▴' : 'Charts ▾';
-    if (open) drawEspressoCharts(cs);
-    else if (!show) purgeEspressoCharts();
+    // Behind the V60 switch the box has no width, so nothing is drawn there
+    if (open && coffeeMethod === 'espresso') drawEspressoCharts(cs);
+    else if (!show || coffeeMethod !== 'espresso') purgeEspressoCharts();
   }
 
   function purgeEspressoCharts() { purgeCharts(ESPRESSO_CHART_IDS); }
 
   function purgeGlobalCharts() { purgeCharts(GLOBAL_CHART_IDS); }
 
-  function purgeEspressoAll() { purgeEspressoCharts(); purgeGlobalCharts(); }
+  function purgePouroverCharts() { purgeCharts(POUR_CHART_IDS); }
+
+  function purgeEspressoAll() { purgeEspressoCharts(); purgePouroverCharts(); purgeGlobalCharts(); }
 
   function resizeEspressoCharts() {
     if (typeof Plotly === 'undefined') return;
-    [...ESPRESSO_CHART_IDS, ...GLOBAL_CHART_IDS].forEach(id => {
+    [...ESPRESSO_CHART_IDS, ...POUR_CHART_IDS, ...GLOBAL_CHART_IDS].forEach(id => {
       const el = document.getElementById(id);
       if (el && el.data && el.offsetParent !== null) Plotly.Plots.resize(el);
     });
@@ -4582,6 +4835,357 @@
     }
     crosswordMsg('espresso-shot-msg', makeCurrent ? 'Logged — now the current recipe ✓' : 'Logged ✓', 'success');
     await renderBeanDetail({ prefill: true });
+  }
+
+  // ── V60 pour-over ──
+  // Mirrors the shot flow: one form logs and edits, own brews can be edited
+  // and deleted, any brew can be made the current V60 recipe. Time, taste and
+  // notes are optional and omitted when blank, never stored as '' or null.
+  function isCurrentBrew(brew) {
+    return !!(espressoBean && espressoBean.currentV60 && espressoBean.currentV60.brewId === brew.id);
+  }
+
+  function renderBrewList() {
+    const me = auth.currentUser ? auth.currentUser.uid : null;
+    document.getElementById('espresso-brew-list').innerHTML = espressoBrews.map((b, i) => {
+      const meta = [
+        brewWhen(b),
+        `${b.displayName}${b.uid === me ? ' (you)' : ''}`,
+        TASTES[b.taste] || ''
+      ].filter(Boolean).join(' · ');
+      const current = isCurrentBrew(b);
+      if (b.id === confirmingBrewId) {
+        return `
+      <li class="espresso-shot espresso-shot-confirm">
+        <span class="espresso-recipe">${escapeHtml(pourLine(b))}</span>
+        <span class="espresso-shot-actions">
+          <button type="button" class="espresso-secondary espresso-danger" data-action="delete" data-index="${i}">Delete</button>
+          <button type="button" class="espresso-secondary" data-action="keep" data-index="${i}">Keep</button>
+        </span>
+        <span class="espresso-shot-meta">${current
+          ? 'Delete this brew? It\'s the current V60 recipe, so this bean will have none until you pick another.'
+          : 'Delete this brew? This can\'t be undone.'}</span>
+      </li>`;
+      }
+      const editing = editingBrew && editingBrew.id === b.id;
+      return `
+      <li class="espresso-shot${editing ? ' espresso-shot-editing' : ''}">
+        <span class="espresso-recipe">${escapeHtml(pourLine(b))}</span>
+        <span class="espresso-shot-actions">
+          ${current
+            ? '<span class="espresso-current-tag">✓ Current</span>'
+            : `<button type="button" class="espresso-secondary" data-action="current" data-index="${i}">Make current</button>`}
+          ${b.uid === me ? `
+          <button type="button" class="espresso-secondary" data-action="edit" data-index="${i}">Edit</button>
+          <button type="button" class="espresso-secondary" data-action="ask-delete" data-index="${i}">Delete</button>` : ''}
+        </span>
+        <span class="espresso-shot-meta">${escapeHtml(meta)}</span>
+        ${b.notes ? `<span class="espresso-shot-notes">${escapeHtml(b.notes)}</span>` : ''}
+      </li>`;
+    }).join('');
+    document.getElementById('espresso-brews-empty').classList.toggle('hidden', espressoBrews.length > 0);
+  }
+
+  document.getElementById('espresso-brew-list').addEventListener('click', async e => {
+    const button = e.target.closest('button[data-action]');
+    const user = auth.currentUser;
+    if (!button || !espressoBean || !user) return;
+    const brew = espressoBrews[Number(button.dataset.index)];
+    if (!brew) return;
+    const action = button.dataset.action;
+    crosswordMsg('espresso-brews-msg', '', 'error');
+
+    if (action === 'current') {
+      button.disabled = true;
+      try {
+        await db.collection(BEANS).doc(espressoBean.id).update(currentV60Patch(brew.id, brew));
+      } catch (err) {
+        console.error('Error setting current V60 recipe:', err);
+        button.disabled = false;
+        crosswordMsg('espresso-brews-msg', 'Couldn\'t update the recipe. Please try again.', 'error');
+        return;
+      }
+      await renderBeanDetail();
+      return;
+    }
+
+    if (brew.uid !== user.uid) return; // only your own brews from here on
+    if (action === 'edit') {
+      startBrewEdit(brew);
+    } else if (action === 'ask-delete') {
+      confirmingBrewId = brew.id;
+      renderBrewList();
+    } else if (action === 'keep') {
+      confirmingBrewId = null;
+      renderBrewList();
+    } else if (action === 'delete') {
+      await deleteBrew(brew, button);
+    }
+  });
+
+  // Taste: tap one to pick it, tap it again to clear
+  document.getElementById('espresso-brew-taste').addEventListener('click', e => {
+    const button = e.target.closest('button[data-taste]');
+    if (!button) return;
+    setBrewTaste(button.getAttribute('aria-pressed') === 'true' ? null : button.dataset.taste);
+  });
+
+  function setBrewTaste(taste) {
+    document.querySelectorAll('#espresso-brew-taste button[data-taste]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.taste === taste)));
+  }
+
+  function brewTaste() {
+    const on = document.querySelector('#espresso-brew-taste button[aria-pressed="true"]');
+    return on ? on.dataset.taste : null;
+  }
+
+  function syncBrewForm() {
+    const editing = !!editingBrew;
+    const locked = editing && isCurrentBrew(editingBrew);
+    document.getElementById('espresso-brew-title').textContent = editing ? 'Edit brew' : 'Log a brew';
+    document.getElementById('espresso-brew-submit').textContent = editing ? 'Save changes' : 'Log brew';
+    document.getElementById('espresso-brew-cancel').classList.toggle('hidden', !editing);
+    document.getElementById('espresso-brew-hint').textContent = !editing ? ''
+      : `Changing the brew from ${brewWhen(editingBrew)}.${locked ? ' It\'s the current V60 recipe, so that changes too.' : ''}`;
+    const box = document.getElementById('espresso-brew-make-current');
+    if (locked) box.checked = true;
+    else if (box.disabled) box.checked = false;
+    box.disabled = locked;
+  }
+
+  // Newest brew, else the bean's currentV60, else 15g / 250g with the grind
+  // blank. Time, taste and notes describe one brew, so they never carry over.
+  function prefillBrewForm(source) {
+    document.getElementById('espresso-brew-grind').value = source ? source.grind : '';
+    document.getElementById('espresso-brew-dose').value = source ? source.dose : V60_DEFAULT.dose;
+    document.getElementById('espresso-brew-water').value = source ? source.water : V60_DEFAULT.water;
+    document.getElementById('espresso-brew-time').value = '';
+    document.getElementById('espresso-brew-notes').value = '';
+    setBrewTaste(null);
+    const box = document.getElementById('espresso-brew-make-current');
+    box.checked = false;
+    box.disabled = false;
+  }
+
+  function startBrewEdit(brew) {
+    editingBrew = brew;
+    confirmingBrewId = null;
+    prefillBrewForm(brew);
+    document.getElementById('espresso-brew-time').value =
+      typeof brew.timeSeconds === 'number' ? formatSecondsToClock(brew.timeSeconds) : '';
+    document.getElementById('espresso-brew-notes').value = brew.notes || '';
+    setBrewTaste(brew.taste || null);
+    crosswordMsg('espresso-brew-msg', '', 'error');
+    syncBrewForm();
+    renderBrewList();
+    const title = document.getElementById('espresso-brew-title');
+    if (title.scrollIntoView) title.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    document.getElementById('espresso-brew-grind').focus({ preventScroll: true });
+  }
+
+  function cancelBrewEdit() {
+    editingBrew = null;
+    crosswordMsg('espresso-brew-msg', '', 'error');
+    prefillBrewForm(espressoBrews[0] || (espressoBean && espressoBean.currentV60));
+    syncBrewForm();
+    renderBrewList();
+  }
+
+  // The form as a brew's fields, or null after showing what's wrong. Messages
+  // follow the rules' ranges.
+  function readBrewForm() {
+    const fail = text => { crosswordMsg('espresso-brew-msg', text, 'error'); return null; };
+    const value = id => document.getElementById(id).value;
+
+    const grind = parseGrind(value('espresso-brew-grind'), 40);
+    if (grind === null) return fail('Grind must be a whole number of clicks from 1 to 40.');
+    const dose = parseGrams(value('espresso-brew-dose'), 5, 40);
+    if (dose === null) return fail('Coffee must be between 5 and 40g.');
+    const water = parseGrams(value('espresso-brew-water'), 50, 1000);
+    if (water === null) return fail('Water must be between 50 and 1000g.');
+
+    const brew = { dose, water, grind };
+    const rawTime = value('espresso-brew-time').trim();
+    if (rawTime) {
+      const timeSeconds = parseClockToSeconds(rawTime);
+      if (timeSeconds === null) return fail(clockErrorMsg(rawTime));
+      if (timeSeconds < 30 || timeSeconds > 900) return fail('Time must be between 0:30 and 15:00.');
+      brew.timeSeconds = timeSeconds;
+    }
+    const taste = brewTaste();
+    if (taste) brew.taste = taste;
+    const notes = value('espresso-brew-notes').trim();
+    if (notes.length > 280) return fail('Notes are limited to 280 characters.');
+    if (notes) brew.notes = notes;
+    return brew;
+  }
+
+  async function submitBrew(event) {
+    event.preventDefault();
+    const user = auth.currentUser;
+    const bean = espressoBean;
+    if (!user || !bean) return;
+
+    const fields = readBrewForm();
+    if (!fields) return;
+    const makeCurrent = document.getElementById('espresso-brew-make-current').checked;
+    if (editingBrew) return saveBrewEdit(fields, makeCurrent);
+
+    const button = document.getElementById('espresso-brew-submit');
+    button.disabled = true;
+    try {
+      const brewRef = db.collection(BREWS).doc();
+      const batch = db.batch();
+      batch.set(brewRef, {
+        beanId: bean.id,
+        uid: user.uid,
+        displayName: user.displayName || user.email,
+        brewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        ...fields
+      });
+      if (makeCurrent) batch.update(db.collection(BEANS).doc(bean.id), currentV60Patch(brewRef.id, fields));
+      await batch.commit();
+    } catch (err) {
+      console.error('Error logging brew:', err);
+      crosswordMsg('espresso-brew-msg', 'Couldn\'t log the brew. Please try again.', 'error');
+      return;
+    } finally {
+      button.disabled = false;
+    }
+    crosswordMsg('espresso-brew-msg', makeCurrent ? 'Logged — now the current V60 recipe ✓' : 'Logged ✓', 'success');
+    await renderBeanDetail({ prefill: true });
+  }
+
+  // Brew and, when it is or becomes the current V60 recipe, the bean in one
+  // batch. A cleared time, taste or note loses its key.
+  async function saveBrewEdit(fields, makeCurrent) {
+    const brew = editingBrew;
+    const bean = espressoBean;
+    const carry = makeCurrent || isCurrentBrew(brew);
+    const gone = firebase.firestore.FieldValue.delete();
+    const button = document.getElementById('espresso-brew-submit');
+    button.disabled = true;
+    try {
+      const batch = db.batch();
+      batch.update(db.collection(BREWS).doc(brew.id), {
+        dose: fields.dose,
+        water: fields.water,
+        grind: fields.grind,
+        timeSeconds: 'timeSeconds' in fields ? fields.timeSeconds : gone,
+        taste: 'taste' in fields ? fields.taste : gone,
+        notes: 'notes' in fields ? fields.notes : gone
+      });
+      if (carry) batch.update(db.collection(BEANS).doc(bean.id), currentV60Patch(brew.id, fields));
+      await batch.commit();
+    } catch (err) {
+      console.error('Error saving brew:', err);
+      crosswordMsg('espresso-brew-msg', 'Couldn\'t save the changes. Please try again.', 'error');
+      return;
+    } finally {
+      button.disabled = false;
+    }
+    editingBrew = null;
+    crosswordMsg('espresso-brew-msg', carry ? 'Saved — the current V60 recipe is updated ✓' : 'Saved ✓', 'success');
+    await renderBeanDetail({ prefill: true });
+  }
+
+  // Deleting the current brew removes the bean's currentV60 key in the same
+  // batch (there's no null form), so the bean never points at a brew that's gone.
+  async function deleteBrew(brew, button) {
+    const bean = espressoBean;
+    const noRecipe = { currentV60: firebase.firestore.FieldValue.delete(), ...audit() };
+    button.disabled = true;
+    try {
+      const batch = db.batch();
+      batch.delete(db.collection(BREWS).doc(brew.id));
+      if (isCurrentBrew(brew)) batch.update(db.collection(BEANS).doc(bean.id), noRecipe);
+      await batch.commit();
+    } catch (err) {
+      console.error('Error deleting brew:', err);
+      button.disabled = false;
+      crosswordMsg('espresso-brews-msg', 'Couldn\'t delete the brew. Please try again.', 'error');
+      return;
+    }
+    confirmingBrewId = null;
+    if (editingBrew && editingBrew.id === brew.id) {
+      editingBrew = null;
+      crosswordMsg('espresso-brew-msg', '', 'error');
+    }
+    await renderBeanDetail({ prefill: !editingBrew });
+    crosswordMsg('espresso-brews-msg', 'Brew deleted ✓', 'success');
+  }
+
+  // ── V60 dial-in chart ──
+  // Oldest first, numbered from 1; a brew still waiting for its server time is
+  // left out until the next render, as with shots.
+  function chartBrews(brews) {
+    const list = brews.filter(b => b.brewedAt).sort((a, b) => brewMillis(a) - brewMillis(b));
+    return list.map((b, i) => ({ ...b, n: i + 1, isLatest: i === list.length - 1 }));
+  }
+
+  function togglePouroverCharts() {
+    pouroverChartsOpen = !pouroverChartsOpen;
+    writePref(POUR_CHARTS_OPEN_KEY, pouroverChartsOpen ? '1' : '0');
+    syncPouroverCharts();
+  }
+
+  // Card shown from 3 brews; drawn only while open and on the V60 side,
+  // purged otherwise, so a closed card does no Plotly work.
+  function syncPouroverCharts() {
+    const cb = espressoBean ? chartBrews(espressoBrews) : [];
+    const show = cb.length >= 3, open = show && pouroverChartsOpen;
+    document.getElementById('pourover-charts-card').classList.toggle('hidden', !show);
+    document.getElementById('pourover-charts-body').classList.toggle('hidden', !open);
+    const toggle = document.getElementById('pourover-charts-toggle');
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.textContent = pouroverChartsOpen ? 'Charts ▴' : 'Charts ▾';
+    if (open && coffeeMethod === 'v60') drawPouroverChart(cb);
+    else purgePouroverCharts();
+  }
+
+  // "#4 · C15 · 15g:250g · 3:10 · 1:16.7 · Balanced" and the date
+  function chartBrewText(b) {
+    const taste = TASTES[b.taste] ? ` · ${TASTES[b.taste]}` : '';
+    return `#${b.n} · ${pourLine(b)}${taste}<br>${brewWhen(b)}`;
+  }
+
+  // Grind clicks by brew number, a muted line through every brew, markers
+  // coloured by taste (one legend entry per taste present), the newest ringed.
+  // No target box: with a fixed 15:250 recipe the ratio barely moves.
+  function drawPouroverChart(cb) {
+    if (plotlyMissing('pourover-charts-msg')) return;
+    crosswordMsg('pourover-charts-msg', '', 'error');
+    const t = chartTheme(), latest = cb[cb.length - 1];
+    const colourOf = b => (TASTES[b.taste] ? t[b.taste] : t.untasted);
+    const groups = [...Object.keys(TASTES), null].map(taste => ({
+      name: taste ? TASTES[taste] : 'Untasted',
+      brews: cb.filter(b => (TASTES[b.taste] ? b.taste : null) === taste)
+    })).filter(g => g.brews.length);
+    const traces = [
+      { x: cb.map(b => b.n), y: cb.map(b => b.grind), mode: 'lines', type: 'scatter',
+        line: { color: t.text, width: 1.5 }, hoverinfo: 'skip', showlegend: false },
+      ...groups.map(g => ({ x: g.brews.map(b => b.n), y: g.brews.map(b => b.grind), text: g.brews.map(chartBrewText),
+        name: g.name, mode: 'markers', type: 'scatter', marker: { color: colourOf(g.brews[0]), size: 10 },
+        hovertemplate: '%{text}<extra></extra>' })),
+      { x: [latest.n], y: [latest.grind], text: [chartBrewText(latest)], mode: 'markers', type: 'scatter', showlegend: false,
+        marker: { color: colourOf(latest), size: 14, line: { color: t.accent, width: 2.5 } },
+        hovertemplate: '%{text}<extra></extra>' }
+    ];
+    const l = espressoLayout(t);
+    l.showlegend = true;
+    l.legend = { ...legendAbovePlot(), entrywidth: 0.5, entrywidthmode: 'fraction' }; // two per row, even on a phone
+    l.height = 280;
+    l.xaxis.range = [0.5, cb.length + 0.5];
+    l.xaxis.title = { text: 'brew', font: { size: 11 } };
+    l.xaxis.tickformat = 'd';
+    if (cb.length <= 15) { l.xaxis.tick0 = 1; l.xaxis.dtick = 1; }
+    const grinds = cb.map(b => b.grind), lo = Math.min(...grinds) - 1, hi = Math.max(...grinds) + 1;
+    l.yaxis.range = [lo, hi];
+    l.yaxis.title = { text: 'grind (clicks)', font: { size: 11 } };
+    l.yaxis.tickformat = 'd';
+    l.yaxis.dtick = hi - lo <= 12 ? 1 : 2;
+    Plotly.react('pourover-chart-dialin', traces, l, CHART_CONFIG);
   }
 </script>
 

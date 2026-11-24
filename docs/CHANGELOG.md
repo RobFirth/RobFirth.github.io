@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Espresso: the all-beans Ageing charts stop at 6 weeks off roast, with a note when shots run past the edge and a 6 weeks / All switch, and can show caff, decaf or all bags.
 - Espresso: the bean page's Dial-in chart can show shot time by days off roast instead of shot number (remembered on the device; offered when the bean has a roast date).
 - Espresso: a collapsed Charts card on the bean list covering every bean, archived included: where shots land with the four most recent bags in colour; grind and shot time by days off roast, one line per bag; and caff, decaf or all heat maps of grind × time and time × ratio, drawn as smoothed density contours in viridis with each shot as a dot (Smooth or Detailed).
+- Coffee (was Espresso): V60 pour-over brews on the bean page. An Espresso | V60 switch opens on the method of the bean's newest log. A quick brew log (grind clicks, coffee and water, then an optional Sour / Balanced / Bitter, time and notes) is prefilled from the newest brew. Own brews can be edited and deleted, and any brew can be made the current V60 recipe. A collapsed dial-in chart of grind by brew, coloured by taste, appears from three brews. The bean list counts brews as use and shows the last-used method's recipe. The all-beans charts stay espresso-only.
 
 ### Changed
 - Family page: reads the account's role after sign-in. Child accounts go to `/kids/`; an account without a role is asked to sign out and sign in again.
